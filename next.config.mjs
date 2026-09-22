@@ -2,7 +2,8 @@
 const isGithubActions = process.env.GITHUB_ACTIONS || false;
 
 const nextConfig = {
-  output: 'export',
+  // Only use static export for GitHub Pages in GitHub Actions
+  ...(isGithubActions ? { output: 'export' } : {}),
   basePath: isGithubActions ? '/sports-analytics' : '',
   assetPrefix: isGithubActions ? '/sports-analytics/' : '',
   reactStrictMode: true,
