@@ -1,6 +1,6 @@
 import { Controller, Post, Get, Put, Body, UseGuards, Request } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { RegisterDto, LoginDto, UpdateProfileDto, ToggleFavoriteDto } from './dto/auth.dto';
+import { RegisterDto, LoginDto, GoogleAuthDto, UpdateProfileDto, ToggleFavoriteDto } from './dto/auth.dto';
 import { AuthGuard } from '@nestjs/passport';
 
 @Controller('auth')
@@ -15,6 +15,11 @@ export class AuthController {
   @Post('login')
   async login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
+  }
+
+  @Post('google')
+  async googleAuth(@Body() dto: GoogleAuthDto) {
+    return this.authService.googleAuth(dto);
   }
 
   @UseGuards(AuthGuard('jwt'))

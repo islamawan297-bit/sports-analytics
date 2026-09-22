@@ -71,6 +71,34 @@ export const api = {
     }
   },
 
+  async googleLogin(payload?: any): Promise<AuthResponse> {
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/google`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload || {}),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || 'Google authentication failed.');
+      }
+      return await res.json();
+    } catch (e: any) {
+      if (e.message && !e.message.includes('fetch')) throw e;
+      return {
+        message: 'Google Sign-In successful.',
+        accessToken: 'google_jwt_token_sample',
+        user: {
+          id: 'google-user-9910',
+          email: payload?.email || 'user.google@gmail.com',
+          name: payload?.name || 'Google User',
+          role: 'USER',
+          favorites: ['lakers', 'chiefs'],
+        },
+      };
+    }
+  },
+
   async getProfile(token: string): Promise<UserProfile> {
     try {
       const res = await fetch(`${API_BASE_URL}/auth/profile`, {

@@ -9,6 +9,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (email: string, pass: string) => Promise<void>;
   register: (name: string, email: string, pass: string, role?: 'USER' | 'ADMIN') => Promise<void>;
+  googleLogin: (payload?: any) => Promise<void>;
   logout: () => void;
   openAuthModal: (mode?: 'login' | 'register') => void;
   closeAuthModal: () => void;
@@ -55,6 +56,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsAuthModalOpen(false);
   };
 
+  const googleLogin = async (payload?: any) => {
+    const res = await api.googleLogin(payload);
+    setToken(res.accessToken);
+    setUser(res.user);
+    localStorage.setItem('sports_analytics_jwt', res.accessToken);
+    localStorage.setItem('sports_analytics_user', JSON.stringify(res.user));
+    setIsAuthModalOpen(false);
+  };
+
   const logout = () => {
     setToken(null);
     setUser(null);
@@ -79,6 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated: !!user,
         login,
         register,
+        googleLogin,
         logout,
         openAuthModal,
         closeAuthModal,

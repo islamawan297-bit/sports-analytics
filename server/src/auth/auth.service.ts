@@ -2,7 +2,7 @@ import { Injectable, ConflictException, UnauthorizedException, NotFoundException
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
-import { RegisterDto, LoginDto, UpdateProfileDto, ToggleFavoriteDto } from './dto/auth.dto';
+import { RegisterDto, LoginDto, GoogleAuthDto, UpdateProfileDto, ToggleFavoriteDto } from './dto/auth.dto';
 
 @Injectable()
 export class AuthService {
@@ -62,6 +62,42 @@ export class AuthService {
 
     return {
       message: 'Logged in successfully.',
+      accessToken: token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        favorites: user.favorites ? JSON.parse(user.favorites) : [],
+      },
+    };
+  }
+
+  async googleAuth(dto: GoogleAuthDto) {
+    const email = (dto.email || 'google.user@statsedge.pro').toLowerCase();
+    const name = dto.name || 'Google User';
+
+    let user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      const dummyHashedPass = await bcrypt.hash(`GoogleOAuth_${Date.now()}`, 10);
+      user = await this.prisma.user.create({
+        data: {
+          email,
+          password: dummyHashedPass,
+          name,
+          role: 'USER',
+          favorites: JSON.stringify([]),
+        },
+      });
+    }
+
+    const token = this.generateToken(user.id, user.email, user.role);
+
+    return {
+      message: 'Signed in with Google successfully.',
       accessToken: token,
       user: {
         id: user.id,

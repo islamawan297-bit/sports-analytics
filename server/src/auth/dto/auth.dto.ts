@@ -24,6 +24,20 @@ export class LoginDto {
   password: string;
 }
 
+export class GoogleAuthDto {
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsString()
+  googleIdToken?: string;
+}
+
 export class UpdateProfileDto {
   @IsOptional()
   @IsString()
