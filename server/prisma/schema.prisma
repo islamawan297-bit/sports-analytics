@@ -1,0 +1,142 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      Role     @default(USER)
+  favorites String?  // JSON array of favorite team/player IDs
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Sport {
+  id               String   @id
+  name             String
+  category         String
+  iconName         String
+  description      String
+  seasonPeriod     String
+  activeTeamsCount Int
+  createdAt        DateTime @default(now())
+}
+
+model Team {
+  id          String   @id
+  name        String
+  shortName   String
+  code        String
+  sportId     String
+  logo        String
+  conference  String
+  division    String
+  rank        Int
+  wins        Int
+  losses      Int
+  draws       Int?     @default(0)
+  pct         String
+  streak      String
+  color       String
+  stadium     String
+  established Int
+  coach       String
+  stats       String   // JSON string of stats object
+  radarData   String   // JSON string of radarData array
+  createdAt   DateTime @default(now())
+}
+
+model Player {
+  id          String   @id
+  name        String
+  sportId     String
+  teamId      String
+  teamName    String
+  position    String
+  number      Int
+  avatar      String
+  height      String
+  weight      String
+  age         Int
+  experience  String
+  birthplace  String
+  stats       String   // JSON string of stats
+  trendData   String   // JSON string of trendData
+  recentGames String   // JSON string of recentGames
+  createdAt   DateTime @default(now())
+}
+
+model Fighter {
+  id               String   @id
+  name             String
+  nickname         String
+  sportId          String
+  weightClass      String
+  avatar           String
+  wins             Int
+  losses           Int
+  draws            Int
+  kos              Int
+  height           String
+  reach            String
+  stance           String
+  age              Int
+  country          String
+  rank             String
+  strikingAccuracy String
+  sigStrikesPerMin String
+  careerLog        String   // JSON string of careerLog
+  createdAt        DateTime @default(now())
+}
+
+model Game {
+  id                     String   @id
+  sportId                String
+  status                 String   // live | upcoming | final
+  startTime              String
+  venue                  String
+  periodText             String?
+  homeTeam               String   // JSON string of TeamSummary
+  awayTeam               String   // JSON string of TeamSummary
+  winProbability         String   // JSON string {home: number, away: number}
+  odds                   String   // JSON string of Odds
+  winProbabilityTimeline String?  // JSON string
+  boxScorePeriods        String?  // JSON string
+  homeBoxScore           String?  // JSON string
+  awayBoxScore           String?  // JSON string
+  playByPlay             String?  // JSON string
+  keyInsight             String?
+  createdAt              DateTime @default(now())
+}
+
+model Fight {
+  id                     String   @id
+  sportId                String
+  status                 String   // live | upcoming | final
+  startTime              String
+  venue                  String
+  weightClass            String
+  roundsMax              Int
+  periodText             String?
+  fighter1               String   // JSON string of FighterSummary
+  fighter2               String   // JSON string of FighterSummary
+  winProbability         String   // JSON string
+  odds                   String   // JSON string
+  roundStats             String?  // JSON string
+  winProbabilityTimeline String?  // JSON string
+  taleOfTheTape          String?  // JSON string
+  keyInsight             String?
+  createdAt              DateTime @default(now())
+}
