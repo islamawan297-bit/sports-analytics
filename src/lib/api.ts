@@ -1,7 +1,7 @@
 import { Game, Fight, Team, Player, StandingRow, SportInfo } from '@/types/sports';
 import { MOCK_GAMES, MOCK_FIGHTS, MOCK_TEAMS, MOCK_PLAYERS, MOCK_STANDINGS, SPORTS_LIST } from '@/data/mockData';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 export interface UserProfile {
   id: string;
