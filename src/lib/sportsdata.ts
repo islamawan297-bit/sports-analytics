@@ -1,7 +1,7 @@
 import { Game, Team, Player, StandingRow, SportType } from '@/types/sports';
 import { MOCK_GAMES, MOCK_TEAMS, MOCK_PLAYERS, MOCK_STANDINGS } from '@/data/mockData';
 
-const API_KEY = process.env.SPORTSDATA_API_KEY;
+const API_KEY = process.env.SPORTSDATAIO_API_KEY || process.env.SPORTSDATA_API_KEY;
 
 // Base Endpoints for SportsDataIO
 const ENDPOINTS: Record<string, string> = {
