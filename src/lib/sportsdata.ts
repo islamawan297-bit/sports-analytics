@@ -12,8 +12,31 @@ const ENDPOINTS: Record<string, string> = {
   mls: 'https://api.sportsdata.io/v3/soccer',
 };
 
-async function fetchFromSportsDataIO(url: string) {
+// Global Diagnostic Tracker for Admin & Developer Monitoring
+export interface ProviderDiagnostic {
+  sport: string;
+  name: string;
+  status: 'ONLINE' | 'RATE_LIMITED' | 'ERROR' | 'MOCK_FALLBACK';
+  latencyMs: number;
+  lastSync: string;
+  isRealData: boolean;
+  rateLimitUsage: string;
+  statusCode?: number;
+}
+
+const diagnosticsMap: Record<string, ProviderDiagnostic> = {
+  nba: { sport: 'nba', name: 'SportsDataIO NBA v3 Feed', status: API_KEY ? 'ONLINE' : 'MOCK_FALLBACK', latencyMs: 0, lastSync: 'Never', isRealData: !!API_KEY, rateLimitUsage: '0%' },
+  nfl: { sport: 'nfl', name: 'SportsDataIO NFL v3 Feed', status: API_KEY ? 'ONLINE' : 'MOCK_FALLBACK', latencyMs: 0, lastSync: 'Never', isRealData: !!API_KEY, rateLimitUsage: '0%' },
+  mlb: { sport: 'mlb', name: 'SportsDataIO MLB v3 Feed', status: API_KEY ? 'ONLINE' : 'MOCK_FALLBACK', latencyMs: 0, lastSync: 'Never', isRealData: !!API_KEY, rateLimitUsage: '0%' },
+  nhl: { sport: 'nhl', name: 'SportsDataIO NHL v3 Feed', status: API_KEY ? 'ONLINE' : 'MOCK_FALLBACK', latencyMs: 0, lastSync: 'Never', isRealData: !!API_KEY, rateLimitUsage: '0%' },
+  mls: { sport: 'mls', name: 'SportsDataIO MLS Soccer v3 Feed', status: API_KEY ? 'ONLINE' : 'MOCK_FALLBACK', latencyMs: 0, lastSync: 'Never', isRealData: !!API_KEY, rateLimitUsage: '0%' },
+  boxing: { sport: 'boxing', name: 'Combat Sports Provider (Boxing)', status: 'MOCK_FALLBACK', latencyMs: 12, lastSync: 'Active', isRealData: false, rateLimitUsage: '0%' },
+  mma: { sport: 'mma', name: 'Combat Sports Provider (MMA)', status: 'MOCK_FALLBACK', latencyMs: 14, lastSync: 'Active', isRealData: false, rateLimitUsage: '0%' },
+};
+
+async function fetchFromSportsDataIO(url: string, sportKey?: string) {
   if (!API_KEY) return null;
+  const startMs = Date.now();
   try {
     const separator = url.includes('?') ? '&' : '?';
     const fullUrl = `${url}${separator}key=${API_KEY}`;
@@ -23,12 +46,47 @@ async function fetchFromSportsDataIO(url: string) {
         'Ocp-Apim-Subscription-Key': API_KEY,
       },
     });
+
+    const elapsed = Date.now() - startMs;
+
+    if (sportKey && diagnosticsMap[sportKey]) {
+      diagnosticsMap[sportKey].latencyMs = elapsed;
+      diagnosticsMap[sportKey].lastSync = new Date().toLocaleTimeString();
+      diagnosticsMap[sportKey].statusCode = res.status;
+
+      if (res.status === 429) {
+        diagnosticsMap[sportKey].status = 'RATE_LIMITED';
+        diagnosticsMap[sportKey].rateLimitUsage = '100% (Exceeded)';
+        console.warn(`SportsDataIO 429 Rate Limit Exceeded for ${url}`);
+        return null;
+      }
+
+      if (!res.ok) {
+        diagnosticsMap[sportKey].status = 'ERROR';
+        console.error(`SportsDataIO HTTP ${res.status} Error for ${url}`);
+        return null;
+      }
+
+      diagnosticsMap[sportKey].status = 'ONLINE';
+      diagnosticsMap[sportKey].isRealData = true;
+      diagnosticsMap[sportKey].rateLimitUsage = 'Active';
+    }
+
     if (!res.ok) return null;
     return await res.json();
   } catch (err) {
+    const elapsed = Date.now() - startMs;
+    if (sportKey && diagnosticsMap[sportKey]) {
+      diagnosticsMap[sportKey].latencyMs = elapsed;
+      diagnosticsMap[sportKey].status = 'ERROR';
+    }
     console.error(`SportsDataIO fetch error for ${url}:`, err);
     return null;
   }
+}
+
+export function getProviderDiagnostics(): ProviderDiagnostic[] {
+  return Object.values(diagnosticsMap);
 }
 
 /**
@@ -45,19 +103,26 @@ export async function getLiveGamesFromProvider(sport?: string): Promise<Game[]> 
 
   for (const s of targetSports) {
     if (s === 'boxing' || s === 'mma') {
-      // SportsDataIO does not provide standard structured feeds for Boxing/MMA
       continue;
     }
 
     let rawGames: any[] | null = null;
-    if (s === 'nba') rawGames = await fetchFromSportsDataIO(`${ENDPOINTS.nba}/scores/json/GamesByDate/${todayStr}`);
-    else if (s === 'nfl') rawGames = await fetchFromSportsDataIO(`${ENDPOINTS.nfl}/scores/json/ScoresByDate/${todayStr}`);
-    else if (s === 'mlb') rawGames = await fetchFromSportsDataIO(`${ENDPOINTS.mlb}/scores/json/GamesByDate/${todayStr}`);
-    else if (s === 'nhl') rawGames = await fetchFromSportsDataIO(`${ENDPOINTS.nhl}/scores/json/GamesByDate/${todayStr}`);
-    else if (s === 'mls') rawGames = await fetchFromSportsDataIO(`${ENDPOINTS.mls}/scores/json/Schedule/MLS/2025`);
+    if (s === 'nba') rawGames = await fetchFromSportsDataIO(`${ENDPOINTS.nba}/scores/json/GamesByDate/${todayStr}`, s);
+    else if (s === 'nfl') rawGames = await fetchFromSportsDataIO(`${ENDPOINTS.nfl}/scores/json/ScoresByDate/${todayStr}`, s);
+    else if (s === 'mlb') rawGames = await fetchFromSportsDataIO(`${ENDPOINTS.mlb}/scores/json/GamesByDate/${todayStr}`, s);
+    else if (s === 'nhl') rawGames = await fetchFromSportsDataIO(`${ENDPOINTS.nhl}/scores/json/GamesByDate/${todayStr}`, s);
+    else if (s === 'mls') rawGames = await fetchFromSportsDataIO(`${ENDPOINTS.mls}/scores/json/Schedule/MLS/2025`, s);
+
+    // If GamesByDate returns empty array (offseason/no games today), fetch schedule games
+    if (!rawGames || (Array.isArray(rawGames) && rawGames.length === 0)) {
+      if (s === 'nba') rawGames = await fetchFromSportsDataIO(`${ENDPOINTS.nba}/scores/json/Schedules/2025`, s);
+      else if (s === 'nfl') rawGames = await fetchFromSportsDataIO(`${ENDPOINTS.nfl}/scores/json/Schedules/2025`, s);
+      else if (s === 'mlb') rawGames = await fetchFromSportsDataIO(`${ENDPOINTS.mlb}/scores/json/Schedules/2025`, s);
+      else if (s === 'nhl') rawGames = await fetchFromSportsDataIO(`${ENDPOINTS.nhl}/scores/json/Schedules/2025`, s);
+    }
 
     if (rawGames && Array.isArray(rawGames) && rawGames.length > 0) {
-      const transformed = rawGames.map((g: any, idx: number) => {
+      const transformed = rawGames.slice(0, 20).map((g: any, idx: number) => {
         const isCompleted = g.IsClosed || g.Status === 'Final' || g.Status === 'F/OT';
         const isInProgress = g.InProgress || g.Status === 'InProgress' || g.Status === 'Live';
         
@@ -102,13 +167,13 @@ export async function getLiveGamesFromProvider(sport?: string): Promise<Game[]> 
       });
       allGames.push(...transformed);
     } else {
-      // Fallback to mock data for this sport if API returned empty/scrambled array
+      // Fallback to mock data for this sport if API is unavailable or rate-limited
       const mockFiltered = MOCK_GAMES.filter((g) => g.sport === s);
       allGames.push(...mockFiltered);
     }
   }
 
-  // Include Boxing/MMA mock fights if requested or all sports requested
+  // Include Boxing/MMA mock fights
   if (!sport || sport === 'boxing' || sport === 'mma') {
     const mockFights = MOCK_GAMES.filter((g) => g.sport === 'boxing' || g.sport === 'mma');
     allGames.push(...mockFights);
@@ -128,11 +193,11 @@ export async function getStandingsFromProvider(sport: string): Promise<StandingR
   let rawStandings: any[] | null = null;
   const year = '2025';
 
-  if (sport === 'nba') rawStandings = await fetchFromSportsDataIO(`${ENDPOINTS.nba}/scores/json/Standings/${year}`);
-  else if (sport === 'nfl') rawStandings = await fetchFromSportsDataIO(`${ENDPOINTS.nfl}/scores/json/Standings/${year}`);
-  else if (sport === 'mlb') rawStandings = await fetchFromSportsDataIO(`${ENDPOINTS.mlb}/scores/json/Standings/${year}`);
-  else if (sport === 'nhl') rawStandings = await fetchFromSportsDataIO(`${ENDPOINTS.nhl}/scores/json/Standings/${year}`);
-  else if (sport === 'mls') rawStandings = await fetchFromSportsDataIO(`${ENDPOINTS.mls}/scores/json/Standings/MLS`);
+  if (sport === 'nba') rawStandings = await fetchFromSportsDataIO(`${ENDPOINTS.nba}/scores/json/Standings/${year}`, sport);
+  else if (sport === 'nfl') rawStandings = await fetchFromSportsDataIO(`${ENDPOINTS.nfl}/scores/json/Standings/${year}`, sport);
+  else if (sport === 'mlb') rawStandings = await fetchFromSportsDataIO(`${ENDPOINTS.mlb}/scores/json/Standings/${year}`, sport);
+  else if (sport === 'nhl') rawStandings = await fetchFromSportsDataIO(`${ENDPOINTS.nhl}/scores/json/Standings/${year}`, sport);
+  else if (sport === 'mls') rawStandings = await fetchFromSportsDataIO(`${ENDPOINTS.mls}/scores/json/Standings/MLS`, sport);
 
   if (rawStandings && Array.isArray(rawStandings) && rawStandings.length > 0) {
     return rawStandings.map((row: any, idx: number) => ({
@@ -169,7 +234,7 @@ export async function getTeamsFromProvider(sport?: string): Promise<Team[]> {
   for (const s of targetSports) {
     if (s === 'boxing' || s === 'mma') continue;
 
-    const rawTeams = await fetchFromSportsDataIO(`${ENDPOINTS[s]}/scores/json/teams`);
+    const rawTeams = await fetchFromSportsDataIO(`${ENDPOINTS[s]}/scores/json/teams`, s);
     if (rawTeams && Array.isArray(rawTeams) && rawTeams.length > 0) {
       const transformed = rawTeams.map((t: any) => ({
         id: (t.Key || t.TeamID || t.Name).toLowerCase(),
@@ -213,7 +278,7 @@ export async function getPlayersFromProvider(sport?: string, teamId?: string): P
   }
 
   const targetSport = sport && ENDPOINTS[sport] ? sport : 'nba';
-  const rawPlayers = await fetchFromSportsDataIO(`${ENDPOINTS[targetSport]}/scores/json/Players`);
+  const rawPlayers = await fetchFromSportsDataIO(`${ENDPOINTS[targetSport]}/scores/json/Players`, targetSport);
 
   if (rawPlayers && Array.isArray(rawPlayers) && rawPlayers.length > 0) {
     return rawPlayers.slice(0, 30).map((p: any) => ({
