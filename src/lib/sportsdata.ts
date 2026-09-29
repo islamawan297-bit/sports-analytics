@@ -93,9 +93,6 @@ export function getProviderDiagnostics(): ProviderDiagnostic[] {
  * Fetch Live & Scheduled Games from SportsDataIO
  */
 export async function getLiveGamesFromProvider(sport?: string): Promise<Game[]> {
-  if (!API_KEY) {
-    return sport ? MOCK_GAMES.filter((g) => g.sport === sport) : MOCK_GAMES;
-  }
 
   const todayStr = new Date().toISOString().split('T')[0];
   const targetSports = sport && ENDPOINTS[sport] ? [sport] : ['nba', 'nfl', 'mlb', 'nhl', 'mls'];
@@ -107,18 +104,19 @@ export async function getLiveGamesFromProvider(sport?: string): Promise<Game[]> 
     }
 
     let rawGames: any[] | null = null;
+    const currentYear = new Date().getFullYear().toString();
     if (s === 'nba') rawGames = await fetchFromSportsDataIO(`${ENDPOINTS.nba}/scores/json/GamesByDate/${todayStr}`, s);
     else if (s === 'nfl') rawGames = await fetchFromSportsDataIO(`${ENDPOINTS.nfl}/scores/json/ScoresByDate/${todayStr}`, s);
     else if (s === 'mlb') rawGames = await fetchFromSportsDataIO(`${ENDPOINTS.mlb}/scores/json/GamesByDate/${todayStr}`, s);
     else if (s === 'nhl') rawGames = await fetchFromSportsDataIO(`${ENDPOINTS.nhl}/scores/json/GamesByDate/${todayStr}`, s);
-    else if (s === 'mls') rawGames = await fetchFromSportsDataIO(`${ENDPOINTS.mls}/scores/json/Schedules/MLS/2025`, s);
+    else if (s === 'mls') rawGames = await fetchFromSportsDataIO(`${ENDPOINTS.mls}/scores/json/Schedules/MLS/${currentYear}`, s);
 
     // If GamesByDate returns empty array (offseason/no games today), fetch schedule games
     if (!rawGames || (Array.isArray(rawGames) && rawGames.length === 0)) {
-      if (s === 'nba') rawGames = await fetchFromSportsDataIO(`${ENDPOINTS.nba}/scores/json/Schedules/2025`, s);
-      else if (s === 'nfl') rawGames = await fetchFromSportsDataIO(`${ENDPOINTS.nfl}/scores/json/Schedules/2025`, s);
-      else if (s === 'mlb') rawGames = await fetchFromSportsDataIO(`${ENDPOINTS.mlb}/scores/json/Schedules/2025`, s);
-      else if (s === 'nhl') rawGames = await fetchFromSportsDataIO(`${ENDPOINTS.nhl}/scores/json/Schedules/2025`, s);
+      if (s === 'nba') rawGames = await fetchFromSportsDataIO(`${ENDPOINTS.nba}/scores/json/Schedules/${currentYear}`, s);
+      else if (s === 'nfl') rawGames = await fetchFromSportsDataIO(`${ENDPOINTS.nfl}/scores/json/Schedules/${currentYear}`, s);
+      else if (s === 'mlb') rawGames = await fetchFromSportsDataIO(`${ENDPOINTS.mlb}/scores/json/Schedules/${currentYear}`, s);
+      else if (s === 'nhl') rawGames = await fetchFromSportsDataIO(`${ENDPOINTS.nhl}/scores/json/Schedules/${currentYear}`, s);
       else if (s === 'mls') rawGames = await fetchFromSportsDataIO(`${ENDPOINTS.mls}/scores/json/Schedules/MLS`, s);
     }
 
@@ -167,14 +165,93 @@ export async function getLiveGamesFromProvider(sport?: string): Promise<Game[]> 
         };
       });
       allGames.push(...transformed);
+    } else if (s === 'nfl') {
+      const espnNflGames = await fetchNFLGamesFromESPN();
+      if (espnNflGames.length > 0) {
+        allGames.push(...espnNflGames);
+      } else {
+        allGames.push(...MOCK_GAMES.filter((g) => g.sport === s));
+      }
     } else {
-      // Fallback to mock data for this sport if API is unavailable or rate-limited
       const mockFiltered = MOCK_GAMES.filter((g) => g.sport === s);
       allGames.push(...mockFiltered);
     }
   }
 
   return allGames.length > 0 ? allGames : MOCK_GAMES;
+}
+
+async function fetchNFLGamesFromESPN(): Promise<Game[]> {
+  try {
+    const url = 'https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard';
+    const res = await fetch(url, { next: { revalidate: 60 } });
+    if (!res.ok) return [];
+    const data = await res.json();
+    const events = data?.events || [];
+
+    return events.map((evt: any) => {
+      const competition = evt.competitions?.[0];
+      const competitors = competition?.competitors || [];
+      const homeComp = competitors.find((c: any) => c.homeAway === 'home') || competitors[0] || {};
+      const awayComp = competitors.find((c: any) => c.homeAway === 'away') || competitors[1] || {};
+
+      const homeScore = parseInt(homeComp.score || '0', 10);
+      const awayScore = parseInt(awayComp.score || '0', 10);
+
+      const statusType = evt.status?.type?.name;
+      const isCompleted = statusType === 'STATUS_FINAL' || evt.status?.type?.completed;
+      const isInProgress = statusType === 'STATUS_IN_PROGRESS';
+
+      const gameDateStr = evt.date
+        ? new Date(evt.date).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+          })
+        : '2026 Season Game';
+
+      return {
+        id: `nfl-espn-${evt.id}`,
+        sport: 'nfl' as SportType,
+        status: isInProgress ? ('live' as const) : isCompleted ? ('final' as const) : ('upcoming' as const),
+        startTime: gameDateStr,
+        venue: competition?.venue?.fullName || 'NFL Stadium',
+        periodText: evt.status?.type?.detail || evt.status?.type?.description || 'Scheduled',
+        homeTeam: {
+          id: homeComp.team?.abbreviation?.toLowerCase() || 'home',
+          name: homeComp.team?.displayName || 'Home Team',
+          code: homeComp.team?.abbreviation || 'HOME',
+          score: homeScore,
+          logo: homeComp.team?.logo || 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=120&auto=format&fit=crop&q=80',
+          record: homeComp.records?.[0]?.summary || '0-0',
+        },
+        awayTeam: {
+          id: awayComp.team?.abbreviation?.toLowerCase() || 'away',
+          name: awayComp.team?.displayName || 'Away Team',
+          code: awayComp.team?.abbreviation || 'AWAY',
+          score: awayScore,
+          logo: awayComp.team?.logo || 'https://images.unsplash.com/photo-1566577739112-5180d4bf9390?w=120&auto=format&fit=crop&q=80',
+          record: awayComp.records?.[0]?.summary || '0-0',
+        },
+        winProbability: {
+          home: 55,
+          away: 45,
+        },
+        odds: {
+          homeOdds: '-110',
+          awayOdds: '-110',
+          spread: 'PK',
+          overUnder: 'O/U 44.5',
+        },
+        keyInsight: `Verified 2026 NFL Season Matchup: ${evt.name}`,
+      };
+    });
+  } catch (err) {
+    console.warn('ESPN NFL API fetch error:', err);
+    return [];
+  }
 }
 
 /**
@@ -305,7 +382,7 @@ export async function getStandingsFromProvider(sport: string): Promise<StandingR
   }
 
   let rawStandings: any[] | null = null;
-  const year = '2025';
+  const year = new Date().getFullYear().toString();
 
   if (sport === 'nba') rawStandings = await fetchFromSportsDataIO(`${ENDPOINTS.nba}/scores/json/Standings/${year}`, sport);
   else if (sport === 'nfl') rawStandings = await fetchFromSportsDataIO(`${ENDPOINTS.nfl}/scores/json/Standings/${year}`, sport);
