@@ -121,7 +121,7 @@ export async function getLiveGamesFromProvider(sport?: string): Promise<Game[]> 
     }
 
     if (rawGames && Array.isArray(rawGames) && rawGames.length > 0) {
-      const transformed = rawGames.slice(0, 20).map((g: any, idx: number) => {
+      const transformed = rawGames.map((g: any, idx: number) => {
         const isCompleted = g.IsClosed || g.Status === 'Final' || g.Status === 'F/OT';
         const isInProgress = g.InProgress || g.Status === 'InProgress' || g.Status === 'Live';
 
@@ -185,10 +185,12 @@ const ESPN_ENDPOINTS: Record<string, string> = {
 };
 
 async function fetchGamesFromESPN(sport: string): Promise<Game[]> {
-  const url = ESPN_ENDPOINTS[sport];
-  if (!url) return [];
+  const baseUrl = ESPN_ENDPOINTS[sport];
+  if (!baseUrl) return [];
+  const currentYear = new Date().getFullYear();
   try {
-    const res = await fetch(url, { next: { revalidate: 60 } });
+    const fullSeasonUrl = `${baseUrl}?limit=500&dates=${currentYear}`;
+    const res = await fetch(fullSeasonUrl, { next: { revalidate: 60 } });
     if (!res.ok) return [];
     const data = await res.json();
     const events = data?.events || [];
@@ -280,7 +282,7 @@ export async function getFightsFromProvider(sport?: string) {
   for (const sId of sportsToFetch) {
     try {
       const league = sId === 'mma' ? 'ufc' : 'boxing';
-      const url = `https://site.api.espn.com/apis/site/v2/sports/${sId}/${league}/scoreboard`;
+      const url = `https://site.api.espn.com/apis/site/v2/sports/${sId}/${league}/scoreboard?limit=500`;
       const res = await fetch(url, { next: { revalidate: 60 } });
       if (!res.ok) continue;
       const data = await res.json();

@@ -34,6 +34,8 @@ export default function SportClientPage({ params }: { params: { sport: string } 
   const currentSport = SPORTS_LIST.find((s) => s.id === sportId);
 
   const [activeTab, setActiveTab] = useState<string>('overview');
+  const [gameStatusFilter, setGameStatusFilter] = useState<'all' | 'live' | 'upcoming' | 'final'>('all');
+  const [visibleLimit, setVisibleLimit] = useState<number>(12);
   const [apiGames, setApiGames] = useState<Game[]>([]);
   const [apiFights, setApiFights] = useState<Fight[]>([]);
   const [fightsUnavailable, setFightsUnavailable] = useState<boolean>(false);
@@ -174,10 +176,52 @@ export default function SportClientPage({ params }: { params: { sport: string } 
 
             {/* Live & Upcoming Matches or Fights */}
             <section className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-black text-white uppercase tracking-tight flex items-center gap-2">
-                  <span>{currentSport.name} Live & Upcoming Matches</span>
-                </h2>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-black text-white uppercase tracking-tight flex items-center gap-2">
+                    <span>{currentSport.name} 2026 Season Schedule & Matches</span>
+                  </h2>
+                  <p className="text-xs text-slate-400 font-mono mt-0.5">
+                    Showing real verified provider games for full 2026 season schedule.
+                  </p>
+                </div>
+
+                {currentSport.category !== 'combat' && (
+                  <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                    <button
+                      onClick={() => { setGameStatusFilter('all'); setVisibleLimit(12); }}
+                      className={`px-3 py-1 rounded-lg text-xs font-mono font-bold uppercase transition-all ${
+                        gameStatusFilter === 'all' ? 'bg-cyan-500 text-slate-950' : 'bg-slate-900 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      All ({sportGames.length})
+                    </button>
+                    <button
+                      onClick={() => { setGameStatusFilter('live'); setVisibleLimit(12); }}
+                      className={`px-3 py-1 rounded-lg text-xs font-mono font-bold uppercase transition-all ${
+                        gameStatusFilter === 'live' ? 'bg-emerald-500 text-slate-950' : 'bg-slate-900 text-emerald-400 hover:text-white'
+                      }`}
+                    >
+                      Live ({sportGames.filter((g) => g.status === 'live').length})
+                    </button>
+                    <button
+                      onClick={() => { setGameStatusFilter('upcoming'); setVisibleLimit(12); }}
+                      className={`px-3 py-1 rounded-lg text-xs font-mono font-bold uppercase transition-all ${
+                        gameStatusFilter === 'upcoming' ? 'bg-cyan-500 text-slate-950' : 'bg-slate-900 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      Upcoming ({sportGames.filter((g) => g.status === 'upcoming').length})
+                    </button>
+                    <button
+                      onClick={() => { setGameStatusFilter('final'); setVisibleLimit(12); }}
+                      className={`px-3 py-1 rounded-lg text-xs font-mono font-bold uppercase transition-all ${
+                        gameStatusFilter === 'final' ? 'bg-indigo-500 text-white' : 'bg-slate-900 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      Completed ({sportGames.filter((g) => g.status === 'final').length})
+                    </button>
+                  </div>
+                )}
               </div>
 
               {currentSport.category === 'combat' ? (
@@ -199,17 +243,41 @@ export default function SportClientPage({ params }: { params: { sport: string } 
                   )}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {sportGames.length > 0 ? (
-                    sportGames.map((game) => (
-                      <LiveGameCard key={game.id} game={game} />
-                    ))
-                  ) : (
-                    <div className="col-span-3 p-8 text-center bg-slate-900/60 rounded-2xl border border-slate-800 text-slate-400 text-xs font-mono">
-                      No live matches currently active for {currentSport.name}.
-                    </div>
-                  )}
-                </div>
+                <>
+                  {(() => {
+                    const filtered = sportGames.filter((g) => gameStatusFilter === 'all' || g.status === gameStatusFilter);
+                    const paginated = filtered.slice(0, visibleLimit);
+
+                    if (filtered.length === 0) {
+                      return (
+                        <div className="p-8 text-center bg-slate-900/60 rounded-2xl border border-slate-800 text-slate-400 text-xs font-mono">
+                          No {gameStatusFilter !== 'all' ? gameStatusFilter : ''} matches found for {currentSport.name}.
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                          {paginated.map((game) => (
+                            <LiveGameCard key={game.id} game={game} />
+                          ))}
+                        </div>
+
+                        {visibleLimit < filtered.length && (
+                          <div className="text-center pt-2">
+                            <button
+                              onClick={() => setVisibleLimit((prev) => prev + 12)}
+                              className="px-6 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-cyan-400 font-mono text-xs font-bold transition-all hover:border-cyan-500/40"
+                            >
+                              Load More 2026 Season Matches ({filtered.length - visibleLimit} remaining)
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </>
               )}
             </section>
 
