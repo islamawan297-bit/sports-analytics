@@ -1,7 +1,11 @@
 import { Game, Fight, Team, Player, StandingRow, SportInfo } from '@/types/sports';
 import { MOCK_GAMES, MOCK_FIGHTS, MOCK_TEAMS, MOCK_PLAYERS, MOCK_STANDINGS, SPORTS_LIST } from '@/data/mockData';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+const getApiBaseUrl = (): string => {
+  if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL;
+  if (typeof window !== 'undefined') return '/api';
+  return 'http://localhost:4000/api';
+};
 
 export interface UserProfile {
   id: string;
@@ -21,59 +25,91 @@ export interface AuthResponse {
 export const api = {
   // Auth API
   async register(data: any): Promise<AuthResponse> {
-    const res = await fetch(`${API_BASE_URL}/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    const dataJson = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      throw new Error(dataJson.message || 'Registration failed.');
+    const baseUrl = getApiBaseUrl();
+    try {
+      const res = await fetch(`${baseUrl}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      const dataJson = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(dataJson.message || 'Registration failed.');
+      }
+      return dataJson;
+    } catch (err: any) {
+      if (err.name === 'TypeError' || err.message?.includes('Failed to fetch')) {
+        throw new Error(`Authentication server unreachable (${baseUrl}/auth/register). Please check API connection.`);
+      }
+      throw err;
     }
-    return dataJson;
   },
 
   async login(data: any): Promise<AuthResponse> {
-    const res = await fetch(`${API_BASE_URL}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    const dataJson = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      throw new Error(dataJson.message || 'Invalid email or password.');
+    const baseUrl = getApiBaseUrl();
+    try {
+      const res = await fetch(`${baseUrl}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      const dataJson = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(dataJson.message || 'Invalid email or password.');
+      }
+      return dataJson;
+    } catch (err: any) {
+      if (err.name === 'TypeError' || err.message?.includes('Failed to fetch')) {
+        throw new Error(`Authentication server unreachable (${baseUrl}/auth/login). Please check API connection.`);
+      }
+      throw err;
     }
-    return dataJson;
   },
 
   async googleLogin(payload?: any): Promise<AuthResponse> {
-    const res = await fetch(`${API_BASE_URL}/auth/google`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload || {}),
-    });
-    const dataJson = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      throw new Error(dataJson.message || 'Google sign-in failed.');
+    const baseUrl = getApiBaseUrl();
+    try {
+      const res = await fetch(`${baseUrl}/auth/google`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload || {}),
+      });
+      const dataJson = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(dataJson.message || 'Google sign-in failed.');
+      }
+      return dataJson;
+    } catch (err: any) {
+      if (err.name === 'TypeError' || err.message?.includes('Failed to fetch')) {
+        throw new Error(`Authentication server unreachable (${baseUrl}/auth/google). Please check API connection.`);
+      }
+      throw err;
     }
-    return dataJson;
   },
 
   async getProfile(token: string): Promise<UserProfile> {
-    const res = await fetch(`${API_BASE_URL}/auth/profile`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const dataJson = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      throw new Error(dataJson.message || 'Unauthorized or expired session');
+    const baseUrl = getApiBaseUrl();
+    try {
+      const res = await fetch(`${baseUrl}/auth/profile`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const dataJson = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(dataJson.message || 'Unauthorized or expired session');
+      }
+      return dataJson;
+    } catch (err: any) {
+      if (err.name === 'TypeError' || err.message?.includes('Failed to fetch')) {
+        throw new Error(`Authentication server unreachable (${baseUrl}/auth/profile).`);
+      }
+      throw err;
     }
-    return dataJson;
   },
 
   // Sports & Data APIs
   async getSports(): Promise<SportInfo[]> {
     try {
-      const res = await fetch(`${API_BASE_URL}/sports`);
+      const res = await fetch(`${getApiBaseUrl()}/sports`);
       if (res.ok) return await res.json();
     } catch (e) {}
     return SPORTS_LIST;
@@ -81,7 +117,7 @@ export const api = {
 
   async getGames(sport?: string): Promise<Game[]> {
     try {
-      const url = sport ? `${API_BASE_URL}/games?sport=${sport}` : `${API_BASE_URL}/games`;
+      const url = sport ? `${getApiBaseUrl()}/games?sport=${sport}` : `${getApiBaseUrl()}/games`;
       const res = await fetch(url);
       if (res.ok) return await res.json();
     } catch (e) {}
@@ -90,7 +126,7 @@ export const api = {
 
   async getGameById(id: string): Promise<Game | undefined> {
     try {
-      const res = await fetch(`${API_BASE_URL}/games/${id}`);
+      const res = await fetch(`${getApiBaseUrl()}/games/${id}`);
       if (res.ok) return await res.json();
     } catch (e) {}
     return MOCK_GAMES.find((g) => g.id === id);
@@ -108,7 +144,7 @@ export const api = {
     } catch (e) {}
 
     try {
-      const backendUrl = sport ? `${API_BASE_URL}/fights?sport=${sport}` : `${API_BASE_URL}/fights`;
+      const backendUrl = sport ? `${getApiBaseUrl()}/fights?sport=${sport}` : `${getApiBaseUrl()}/fights`;
       const res = await fetch(backendUrl);
       if (res.ok) {
         const json = await res.json();
@@ -122,7 +158,7 @@ export const api = {
 
   async getTeams(sport?: string): Promise<Team[]> {
     try {
-      const url = sport ? `${API_BASE_URL}/teams?sport=${sport}` : `${API_BASE_URL}/teams`;
+      const url = sport ? `${getApiBaseUrl()}/teams?sport=${sport}` : `${getApiBaseUrl()}/teams`;
       const res = await fetch(url);
       if (res.ok) return await res.json();
     } catch (e) {}
@@ -131,7 +167,7 @@ export const api = {
 
   async getPlayers(sport?: string, teamId?: string): Promise<Player[]> {
     try {
-      let url = `${API_BASE_URL}/players`;
+      let url = `${getApiBaseUrl()}/players`;
       const params = new URLSearchParams();
       if (sport) params.append('sport', sport);
       if (teamId) params.append('teamId', teamId);
@@ -145,7 +181,7 @@ export const api = {
 
   async getStandings(sport: string): Promise<StandingRow[]> {
     try {
-      const res = await fetch(`${API_BASE_URL}/standings/${sport}`);
+      const res = await fetch(`${getApiBaseUrl()}/standings/${sport}`);
       if (res.ok) return await res.json();
     } catch (e) {}
     return MOCK_STANDINGS[sport] || [];
@@ -153,7 +189,7 @@ export const api = {
 
   async getGameAnalysis(gameId: string) {
     try {
-      const res = await fetch(`${API_BASE_URL}/analysis/game/${gameId}`);
+      const res = await fetch(`${getApiBaseUrl()}/analysis/game/${gameId}`);
       if (res.ok) return await res.json();
     } catch (e) {}
     const g = MOCK_GAMES.find((x) => x.id === gameId);
@@ -208,7 +244,7 @@ export const api = {
 
     try {
       // 2. Try NestJS backend endpoint if configured
-      const res = await fetch(`${API_BASE_URL}/analysis/ai-insight`, {
+      const res = await fetch(`${getApiBaseUrl()}/analysis/ai-insight`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -230,7 +266,7 @@ export const api = {
 
   async getLiveWinProbability(gameId: string) {
     try {
-      const res = await fetch(`${API_BASE_URL}/analysis/live-probability/${gameId}`);
+      const res = await fetch(`${getApiBaseUrl()}/analysis/live-probability/${gameId}`);
       if (res.ok) return await res.json();
     } catch (e) {}
     return null;
@@ -239,7 +275,7 @@ export const api = {
   // Admin APIs
   async getAdminUsers(token: string) {
     try {
-      const res = await fetch(`${API_BASE_URL}/admin/users`, {
+      const res = await fetch(`${getApiBaseUrl()}/admin/users`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) return await res.json();
@@ -252,7 +288,7 @@ export const api = {
 
   async getProviderStatus() {
     try {
-      const res = await fetch(`${API_BASE_URL}/admin/provider-status`);
+      const res = await fetch(`${getApiBaseUrl()}/admin/provider-status`);
       if (res.ok) return await res.json();
     } catch (e) {}
     return [
@@ -264,7 +300,7 @@ export const api = {
 
   async triggerSync() {
     try {
-      const res = await fetch(`${API_BASE_URL}/admin/sync-trigger`, { method: 'POST' });
+      const res = await fetch(`${getApiBaseUrl()}/admin/sync-trigger`, { method: 'POST' });
       if (res.ok) return await res.json();
     } catch (e) {}
     return { success: true, message: 'Real-time sports data synchronization completed across 7 leagues.' };
@@ -272,7 +308,7 @@ export const api = {
 
   async getSystemLogs() {
     try {
-      const res = await fetch(`${API_BASE_URL}/admin/logs`);
+      const res = await fetch(`${getApiBaseUrl()}/admin/logs`);
       if (res.ok) return await res.json();
     } catch (e) {}
     return [
@@ -283,7 +319,7 @@ export const api = {
 
   async getApiStats() {
     try {
-      const res = await fetch(`${API_BASE_URL}/admin/stats`);
+      const res = await fetch(`${getApiBaseUrl()}/admin/stats`);
       if (res.ok) return await res.json();
     } catch (e) {}
     return {
@@ -296,7 +332,7 @@ export const api = {
 
   async flushCache() {
     try {
-      const res = await fetch(`${API_BASE_URL}/admin/cache/flush`, { method: 'POST' });
+      const res = await fetch(`${getApiBaseUrl()}/admin/cache/flush`, { method: 'POST' });
       if (res.ok) return await res.json();
     } catch (e) {}
     return { success: true, message: 'Redis cache keys successfully flushed.' };
