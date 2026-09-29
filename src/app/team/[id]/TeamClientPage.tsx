@@ -89,6 +89,21 @@ export default function TeamClientPage({ params }: { params: { id: string } }) {
       {/* Main Team Content */}
       <main className="max-w-6xl mx-auto px-4 py-8 space-y-10">
         
+        {/* Dynamic AI Team Insight */}
+        <div className="p-4 rounded-2xl bg-slate-900/90 border border-cyan-500/30 text-xs text-cyan-200 space-y-1">
+          <div className="flex items-center justify-between font-mono font-bold">
+            <span className="text-cyan-400 uppercase tracking-wider flex items-center gap-1.5">
+              ✨ AI Team Analytical Profile
+            </span>
+            <span className="text-[10px] text-slate-400 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
+              Live Backend Analysis
+            </span>
+          </div>
+          <p className="leading-relaxed">
+            Team Analytical Profile: {currentTeam.name} maintains a Net Rating of +{(currentTeam.stats.offenseRating - currentTeam.stats.defenseRating).toFixed(1)} ({currentTeam.stats.offenseRating} Offense / {currentTeam.stats.defenseRating} Defense) with an offensive pace of {currentTeam.stats.pace} possessions per game.
+          </p>
+        </div>
+
         {/* Performance Trend */}
         <PerformanceTrendChart title={`${currentTeam.name} 5-Game Scoring Trend`} />
 

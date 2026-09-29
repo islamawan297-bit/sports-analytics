@@ -72,6 +72,15 @@ export default function AdminPortalPage() {
       if (status && status.providers) {
         setProviderStatus(status);
       }
+      const token = localStorage.getItem('sports_analytics_jwt');
+      if (token) {
+        try {
+          const uList = await api.getAdminUsers(token);
+          if (Array.isArray(uList) && uList.length > 0) {
+            setUsers(uList);
+          }
+        } catch (e) {}
+      }
     }
     loadData();
   }, []);

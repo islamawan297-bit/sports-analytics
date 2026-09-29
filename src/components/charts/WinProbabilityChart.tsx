@@ -18,6 +18,8 @@ interface WinProbabilityChartProps {
   awayTeamName: string;
   homeColor?: string;
   awayColor?: string;
+  lastUpdated?: string;
+  isLive?: boolean;
 }
 
 export function WinProbabilityChart({
@@ -26,11 +28,13 @@ export function WinProbabilityChart({
   awayTeamName,
   homeColor = '#06b6d4',
   awayColor = '#3b82f6',
+  lastUpdated,
+  isLive = false,
 }: WinProbabilityChartProps) {
   if (!data || data.length === 0) {
     return (
-      <div className="h-64 flex items-center justify-center text-slate-500 text-xs font-mono">
-        Win probability timeline data loading...
+      <div className="h-48 flex items-center justify-center text-slate-500 text-xs font-mono border border-dashed border-slate-800 rounded-xl p-4">
+        Live win probability timeline data loading or unavailable.
       </div>
     );
   }
@@ -40,14 +44,21 @@ export function WinProbabilityChart({
   return (
     <div className="space-y-4">
       {/* Current Win Probability Header */}
-      <div className="flex items-center justify-between text-xs border-b border-slate-800 pb-3">
+      <div className="flex items-center justify-between text-xs border-b border-slate-800 pb-3 flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: homeColor }} />
           <span className="font-semibold text-slate-200">{homeTeamName}</span>
           <span className="font-mono text-cyan-400 font-bold">{latestPoint.homeProb.toFixed(1)}%</span>
         </div>
-        <div className="text-[11px] font-mono text-slate-400 uppercase tracking-wider">
-          LIVE WIN PROBABILITY
+        <div className="flex items-center gap-2 text-[11px] font-mono">
+          <span className="text-slate-400 uppercase tracking-wider font-bold">
+            LIVE WIN PROBABILITY
+          </span>
+          {lastUpdated && (
+            <span className="text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30 text-[10px]">
+              Last Updated: {lastUpdated}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <span className="font-mono text-blue-400 font-bold">{latestPoint.awayProb.toFixed(1)}%</span>

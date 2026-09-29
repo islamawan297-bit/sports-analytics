@@ -28,21 +28,85 @@ export default function GameClientPage({ params }: { params: { id: string } }) {
   const [game, setGame] = useState<any>(null);
   const [fight, setFight] = useState<any>(null);
   const [analysis, setAnalysis] = useState<any>(null);
+  const [liveProbData, setLiveProbData] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'analytics' | 'boxscore' | 'playbyplay'>('analytics');
 
   useEffect(() => {
     async function loadData() {
       const g = await api.getGameById(gameId);
       if (g) setGame(g);
+
+      const fights = await api.getFights();
+      const f = fights.find((item: any) => item.id === gameId);
+      if (f) setFight(f);
       else {
-        const f = MOCK_FIGHTS.find((f) => f.id === gameId);
-        if (f) setFight(f);
+        const mockF = MOCK_FIGHTS.find((item: any) => item.id === gameId);
+        if (mockF) setFight(mockF);
       }
 
       const ana = await api.getGameAnalysis(gameId);
-      if (ana) setAnalysis(ana);
+
+      // Fetch dynamic AI insight from OpenAI API endpoint (/api/ai-insight)
+      const targetFight = f || (MOCK_FIGHTS.find((item: any) => item.id === gameId));
+      const targetGame = g || (MOCK_GAMES.find((item: any) => item.id === gameId));
+
+      let aiInsightRes = null;
+      if (targetFight) {
+        aiInsightRes = await api.getAiInsight({
+          sport: targetFight.sport,
+          fighter1Name: targetFight.fighter1.name,
+          fighter2Name: targetFight.fighter2.name,
+          fighter1Record: targetFight.fighter1.record,
+          fighter2Record: targetFight.fighter2.record,
+          periodText: targetFight.periodText,
+          weightClass: targetFight.weightClass,
+          venue: targetFight.venue,
+          winProbability: targetFight.winProbability,
+        });
+      } else if (targetGame) {
+        aiInsightRes = await api.getAiInsight({
+          sport: targetGame.sport,
+          homeTeamName: targetGame.homeTeam.name,
+          awayTeamName: targetGame.awayTeam.name,
+          homeScore: targetGame.homeTeam.score,
+          awayScore: targetGame.awayTeam.score,
+          periodText: targetGame.periodText,
+          winProbability: targetGame.winProbability,
+        });
+      }
+
+      setAnalysis({
+        ...(ana || {}),
+        aiInsight: aiInsightRes || ana?.aiInsight
+      });
+
+      const liveProb = await api.getLiveWinProbability(gameId);
+      if (liveProb) setLiveProbData(liveProb);
     }
     loadData();
+
+    // Streaming & Polling for Live Win Probabilities
+    let eventSource: EventSource | null = null;
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+      eventSource = new EventSource(`${apiUrl}/analysis/live-probability-stream/${gameId}`);
+      eventSource.onmessage = (event) => {
+        try {
+          const parsed = JSON.parse(event.data);
+          if (parsed) setLiveProbData(parsed);
+        } catch (e) {}
+      };
+    } catch (e) {}
+
+    const pollInterval = setInterval(async () => {
+      const liveData = await api.getLiveWinProbability(gameId);
+      if (liveData) setLiveProbData(liveData);
+    }, 3000);
+
+    return () => {
+      if (eventSource) eventSource.close();
+      clearInterval(pollInterval);
+    };
   }, [gameId]);
 
   if (!game && !fight) {
@@ -141,11 +205,23 @@ export default function GameClientPage({ params }: { params: { id: string } }) {
 
             </div>
 
-            {/* Insight Alert */}
-            {currentFight.keyInsight && (
-              <div className="mt-8 p-3.5 rounded-xl bg-red-950/40 border border-red-800/40 text-xs text-red-200 flex items-center gap-2 max-w-2xl mx-auto">
-                <Sparkles className="w-4 h-4 text-red-400 shrink-0" />
-                <span><strong>AI Fight Key Insight:</strong> {currentFight.keyInsight}</span>
+            {/* Dynamic AI Fight Insight Alert */}
+            {(analysis?.aiInsight || currentFight.keyInsight) && (
+              <div className="mt-8 p-3.5 rounded-xl bg-red-950/40 border border-red-800/40 text-xs text-red-200 space-y-1 max-w-2xl mx-auto">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-red-400 shrink-0" />
+                    <span className="font-bold text-red-300">
+                      {analysis?.aiInsight?.isRealAi ? 'AI Fight Analysis' : 'Combat Sports Metric Breakdown'}
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-400">
+                    {analysis?.aiInsight?.provider || 'Combat Analysis Engine'}
+                  </span>
+                </div>
+                <p className="leading-relaxed">
+                  {analysis?.aiInsight?.insight || currentFight.keyInsight}
+                </p>
               </div>
             )}
 
@@ -170,11 +246,13 @@ export default function GameClientPage({ params }: { params: { id: string } }) {
               Round-by-Round Win Probability Shift
             </h2>
             <WinProbabilityChart
-              data={currentFight.winProbabilityTimeline}
+              data={liveProbData?.timeline || currentFight.winProbabilityTimeline}
               homeTeamName={f1.name}
               awayTeamName={f2.name}
               homeColor="#ef4444"
               awayColor="#3b82f6"
+              lastUpdated={liveProbData?.lastUpdated}
+              isLive={currentFight.status === 'live'}
             />
           </div>
 
@@ -262,11 +340,28 @@ export default function GameClientPage({ params }: { params: { id: string } }) {
 
           </div>
 
-          {/* Key Insight Alert */}
-          {currentGame!.keyInsight && (
-            <div className="mt-8 p-3.5 rounded-xl bg-cyan-950/40 border border-cyan-800/40 text-xs text-cyan-200 flex items-center gap-2 max-w-2xl mx-auto">
-              <Sparkles className="w-4 h-4 text-cyan-400 shrink-0" />
-              <span><strong>AI Key Insight:</strong> {currentGame!.keyInsight}</span>
+          {/* Dynamic AI Match Insight Alert */}
+          {(analysis?.aiInsight || currentGame!.keyInsight) && (
+            <div className="mt-8 p-3.5 rounded-xl bg-cyan-950/40 border border-cyan-800/40 text-xs text-cyan-200 space-y-1 max-w-2xl mx-auto">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-cyan-400 shrink-0" />
+                  <span className="font-bold text-cyan-300">
+                    {analysis?.aiInsight?.isRealAi ? 'AI Match Insight' : 'Real-Time Statistical Insight'}
+                  </span>
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-400">
+                  {analysis?.aiInsight?.provider || 'Statistical Engine'}
+                </span>
+              </div>
+              <p className="leading-relaxed">
+                {analysis?.aiInsight?.insight || currentGame!.keyInsight}
+              </p>
+              {analysis?.aiInsight?.disclaimer && (
+                <div className="text-[10px] text-amber-400/90 font-mono pt-1 border-t border-cyan-900/40">
+                  Notice: {analysis.aiInsight.disclaimer}
+                </div>
+              )}
             </div>
           )}
 
@@ -331,11 +426,13 @@ export default function GameClientPage({ params }: { params: { id: string } }) {
                 Live Game Win Probability Movement
               </h2>
               <WinProbabilityChart
-                data={currentGame!.winProbabilityTimeline}
+                data={liveProbData?.timeline || currentGame!.winProbabilityTimeline}
                 homeTeamName={currentGame!.homeTeam.name}
                 awayTeamName={currentGame!.awayTeam.name}
                 homeColor="#06b6d4"
                 awayColor="#3b82f6"
+                lastUpdated={liveProbData?.lastUpdated}
+                isLive={currentGame!.status === 'live'}
               />
             </div>
 

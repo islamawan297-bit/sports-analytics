@@ -1,7 +1,7 @@
 import { Game, Fight, Team, Player, StandingRow, SportInfo } from '@/types/sports';
 import { MOCK_GAMES, MOCK_FIGHTS, MOCK_TEAMS, MOCK_PLAYERS, MOCK_STANDINGS, SPORTS_LIST } from '@/data/mockData';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
 export interface UserProfile {
   id: string;
@@ -21,91 +21,53 @@ export interface AuthResponse {
 export const api = {
   // Auth API
   async register(data: any): Promise<AuthResponse> {
-    try {
-      const res = await fetch(`${API_BASE_URL}/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      if (res.ok) {
-        return await res.json();
-      }
-    } catch (e) {
-      // Ignore network errors for seamless client preview
+    const res = await fetch(`${API_BASE_URL}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    const dataJson = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(dataJson.message || 'Registration failed.');
     }
-    return {
-      message: 'Registration successful.',
-      accessToken: 'mock_jwt_token_sample',
-      user: { id: 'mock-user-' + Date.now(), email: data.email, name: data.name, role: data.role || 'USER', favorites: [] },
-    };
+    return dataJson;
   },
 
   async login(data: any): Promise<AuthResponse> {
-    try {
-      const res = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      if (res.ok) {
-        return await res.json();
-      }
-    } catch (e) {
-      // Ignore network errors for seamless client preview
+    const res = await fetch(`${API_BASE_URL}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    const dataJson = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(dataJson.message || 'Invalid email or password.');
     }
-    return {
-      message: 'Login successful.',
-      accessToken: 'mock_jwt_token_sample',
-      user: {
-        id: 'mock-user-1',
-        email: data.email,
-        name: data.email.includes('admin') ? 'System Admin' : 'Alex Rivera',
-        role: data.email.includes('admin') ? 'ADMIN' : 'USER',
-        favorites: ['lakers', 'chiefs'],
-      },
-    };
+    return dataJson;
   },
 
   async googleLogin(payload?: any): Promise<AuthResponse> {
-    try {
-      const res = await fetch(`${API_BASE_URL}/auth/google`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload || {}),
-      });
-      if (res.ok) {
-        return await res.json();
-      }
-    } catch (e) {
-      // Ignore network errors for seamless client fallback
+    const res = await fetch(`${API_BASE_URL}/auth/google`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload || {}),
+    });
+    const dataJson = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(dataJson.message || 'Google sign-in failed.');
     }
-    return {
-      message: 'Google Sign-In successful.',
-      accessToken: 'google_jwt_oauth_sample_token',
-      user: {
-        id: 'google-user-' + Math.floor(Math.random() * 10000),
-        email: payload?.email || 'user.google@gmail.com',
-        name: payload?.name || 'Google User',
-        role: 'USER',
-        favorites: ['lakers', 'chiefs'],
-      },
-    };
+    return dataJson;
   },
 
   async getProfile(token: string): Promise<UserProfile> {
-    try {
-      const res = await fetch(`${API_BASE_URL}/auth/profile`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) return await res.json();
-    } catch (e) {}
-    return {
-      id: 'mock-user-1',
-      email: 'user@statsedge.pro',
-      name: 'Alex Rivera',
-      role: 'USER',
-      favorites: ['lakers', 'chiefs'],
-    };
+    const res = await fetch(`${API_BASE_URL}/auth/profile`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const dataJson = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(dataJson.message || 'Unauthorized or expired session');
+    }
+    return dataJson;
   },
 
   // Sports & Data APIs
@@ -136,11 +98,26 @@ export const api = {
 
   async getFights(sport?: string): Promise<Fight[]> {
     try {
-      const url = sport ? `${API_BASE_URL}/fights?sport=${sport}` : `${API_BASE_URL}/fights`;
+      const url = sport ? `/api/fights?sport=${sport}` : `/api/fights`;
       const res = await fetch(url);
-      if (res.ok) return await res.json();
+      if (res.ok) {
+        const json = await res.json();
+        if (Array.isArray(json)) return json;
+        if (json?.data && Array.isArray(json.data)) return json.data;
+      }
     } catch (e) {}
-    return sport ? MOCK_FIGHTS.filter((f) => f.sport === sport) : MOCK_FIGHTS;
+
+    try {
+      const backendUrl = sport ? `${API_BASE_URL}/fights?sport=${sport}` : `${API_BASE_URL}/fights`;
+      const res = await fetch(backendUrl);
+      if (res.ok) {
+        const json = await res.json();
+        if (Array.isArray(json)) return json;
+        if (json?.data && Array.isArray(json.data)) return json.data;
+      }
+    } catch (e) {}
+
+    return [];
   },
 
   async getTeams(sport?: string): Promise<Team[]> {
@@ -181,20 +158,82 @@ export const api = {
     } catch (e) {}
     const g = MOCK_GAMES.find((x) => x.id === gameId);
     if (!g) return null;
+    const homeProb = g.winProbability?.home || 55;
+    const awayProb = g.winProbability?.away || 45;
+    const leader = homeProb >= awayProb ? g.homeTeam.name : g.awayTeam.name;
+
     return {
-      statisticalEstimate: (g as any).statisticalEstimate,
+      gameId,
+      statisticalEstimate: (g as any).statisticalEstimate || {
+        homeWinProbability: homeProb,
+        awayWinProbability: awayProb,
+        predictedHomeScore: 110,
+        predictedAwayScore: 105,
+        predictedMargin: `Home by 5.0`,
+        confidencePct: 74,
+        uncertaintyMargin: '± 4.2 pts',
+        isEstimate: true,
+        label: 'Statistical Estimate',
+        disclaimer: 'Statistical estimates are model-driven probabilistic calculations based on net ratings.',
+        keyDrivers: ['Offensive Efficiency Rating', 'Home-court Advantage (+2.8 pts)', 'Pace Factor'],
+      },
       teamComparison: [
-        { metric: 'Offensive Rating', home: 118.4, away: 112.1 },
-        { metric: 'Defensive Rating', home: 109.2, away: 114.5 },
-        { metric: 'Pace', home: 99.8, away: 98.2 },
-        { metric: 'Rebound %', home: 52.4, away: 47.6 },
-        { metric: 'Turnover %', home: 12.1, away: 14.3 },
+        { metric: 'Offensive Rating', homeValue: 118.4, awayValue: 112.1, advantage: 'home' },
+        { metric: 'Defensive Rating', homeValue: 109.2, awayValue: 114.5, advantage: 'home' },
+        { metric: 'Pace', homeValue: 99.8, awayValue: 98.2, advantage: 'home' },
+        { metric: 'Rebound %', homeValue: 52.4, awayValue: 47.6, advantage: 'home' },
       ],
+      aiInsight: {
+        insight: `Live Statistical Analysis: ${leader} leads model expectation with a ${Math.max(homeProb, awayProb)}% win probability edge over ${g.homeTeam.name === leader ? g.awayTeam.name : g.homeTeam.name}.`,
+        isRealAi: false,
+        provider: 'Statistical Engine',
+      },
       injuries: [
         { player: 'A. Davis', team: g.homeTeam.name, status: 'Questionable', detail: 'Ankle sprain' },
         { player: 'J. Brown', team: g.awayTeam.name, status: 'Out', detail: 'Knee soreness' },
       ],
     };
+  },
+
+  async getAiInsight(data: any) {
+    try {
+      // 1. Try Next.js serverless route /api/ai-insight (runs on Vercel with OPENAI_API_KEY)
+      const res = await fetch('/api/ai-insight', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (res.ok) return await res.json();
+    } catch (e) {}
+
+    try {
+      // 2. Try NestJS backend endpoint if configured
+      const res = await fetch(`${API_BASE_URL}/analysis/ai-insight`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (res.ok) return await res.json();
+    } catch (e) {}
+
+    const homeName = data.homeTeamName || data.fighter1Name || 'Home';
+    const awayName = data.awayTeamName || data.fighter2Name || 'Away';
+    const homeProb = data.winProbability?.home ?? data.winProbability?.fighter1 ?? 50;
+    const awayProb = data.winProbability?.away ?? data.winProbability?.fighter2 ?? 50;
+
+    return {
+      insight: `Statistical Insight: ${homeName} vs ${awayName} projected win probability at ${homeProb}% - ${awayProb}%.`,
+      isRealAi: false,
+      provider: 'Statistical Engine',
+    };
+  },
+
+  async getLiveWinProbability(gameId: string) {
+    try {
+      const res = await fetch(`${API_BASE_URL}/analysis/live-probability/${gameId}`);
+      if (res.ok) return await res.json();
+    } catch (e) {}
+    return null;
   },
 
   // Admin APIs

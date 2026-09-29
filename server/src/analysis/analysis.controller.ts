@@ -1,5 +1,8 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, Post, Param, Query, Body, Sse } from '@nestjs/common';
 import { AnalysisService } from './analysis.service';
+import { InsightRequestDto } from './ai-insights.service';
+import { Observable, interval } from 'rxjs';
+import { map, switchMap } from 'rxjs/operators';
 
 @Controller('analysis')
 export class AnalysisController {
@@ -8,6 +11,29 @@ export class AnalysisController {
   @Get('game/:id')
   async getGameAnalysis(@Param('id') gameId: string) {
     return this.analysisService.getGameAnalysis(gameId);
+  }
+
+  @Get('live-probability/:id')
+  async getLiveWinProbability(@Param('id') gameId: string) {
+    return this.analysisService.getLiveWinProbability(gameId);
+  }
+
+  @Sse('live-probability-stream/:id')
+  streamLiveWinProbability(@Param('id') gameId: string): Observable<any> {
+    return interval(3000).pipe(
+      switchMap(() => this.analysisService.getLiveWinProbability(gameId)),
+      map((data) => ({ data }))
+    );
+  }
+
+  @Post('ai-insight')
+  async getAiInsight(@Body() body: InsightRequestDto) {
+    return this.analysisService.getAiInsight(body);
+  }
+
+  @Get('ai-insight/:id')
+  async getGameAiInsight(@Param('id') gameId: string) {
+    return this.analysisService.getGameAiInsight(gameId);
   }
 
   @Get('h2h')

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   Activity, 
@@ -18,14 +18,49 @@ import { Sidebar } from '@/components/layout/Sidebar';
 import { LiveGameCard } from '@/components/dashboard/LiveGameCard';
 import { FighterComparisonCard } from '@/components/sports/FighterComparisonCard';
 import { StandingsTable } from '@/components/sports/StandingsTable';
+import { Game, StandingRow } from '@/types/sports';
 import { MOCK_GAMES, MOCK_FIGHTS, MOCK_STANDINGS, SPORTS_LIST } from '@/data/mockData';
 
 export default function DashboardPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchFilter, setSearchFilter] = useState<string>('');
+  const [apiGames, setApiGames] = useState<Game[]>([]);
+  const [apiStandings, setApiStandings] = useState<StandingRow[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    async function loadApiData() {
+      try {
+        const [gamesRes, standingsRes] = await Promise.all([
+          fetch('/api/games'),
+          fetch('/api/standings/nba')
+        ]);
+        if (gamesRes.ok) {
+          const gamesData = await gamesRes.json();
+          if (Array.isArray(gamesData) && gamesData.length > 0) {
+            setApiGames(gamesData);
+          }
+        }
+        if (standingsRes.ok) {
+          const standingsData = await standingsRes.json();
+          if (Array.isArray(standingsData) && standingsData.length > 0) {
+            setApiStandings(standingsData);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch live API data for dashboard:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadApiData();
+  }, []);
+
+  const gamesToDisplay = apiGames.length > 0 ? apiGames : MOCK_GAMES;
+  const standingsToDisplay = apiStandings.length > 0 ? apiStandings : MOCK_STANDINGS.nba;
 
   // Filter games based on selected category
-  const filteredGames = MOCK_GAMES.filter((g) => {
+  const filteredGames = gamesToDisplay.filter((g) => {
     if (selectedCategory === 'live') return g.status === 'live';
     if (selectedCategory === 'all') return true;
     return g.sport === selectedCategory;
@@ -218,7 +253,7 @@ export default function DashboardPage() {
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
-          <StandingsTable standings={MOCK_STANDINGS.nba} sportName="NBA" />
+          <StandingsTable standings={standingsToDisplay} sportName="NBA" />
         </section>
 
       </main>

@@ -1,9 +1,13 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { SportsProviderService } from '../providers/sports-provider.service';
 
 @Injectable()
 export class FightsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private providerService: SportsProviderService,
+  ) {}
 
   async findAll(query?: {
     sport?: string;
@@ -15,21 +19,12 @@ export class FightsService {
     const limit = Number(query?.limit) || 50;
     const skip = (page - 1) * limit;
 
-    const where: any = {};
-    if (query?.sport) where.sportId = query.sport;
+    // Fetch real fight events from external provider (ESPN MMA / Boxing)
+    let providerFights = await this.providerService.getFights(query?.sport);
 
-    const fights = await this.prisma.fight.findMany({
-      where,
-      skip,
-      take: limit,
-      orderBy: { createdAt: 'desc' },
-    });
-
-    let formatted = fights.map(this.formatFight);
-
-    if (query?.search) {
+    if (query?.search && providerFights.length > 0) {
       const q = query.search.toLowerCase();
-      formatted = formatted.filter(
+      providerFights = providerFights.filter(
         (f) =>
           f.fighter1?.name?.toLowerCase().includes(q) ||
           f.fighter2?.name?.toLowerCase().includes(q) ||
@@ -37,25 +32,54 @@ export class FightsService {
       );
     }
 
-    const total = await this.prisma.fight.count({ where });
+    if (providerFights.length > 0) {
+      return {
+        data: providerFights,
+        meta: {
+          total: providerFights.length,
+          page,
+          limit,
+          totalPages: Math.ceil(providerFights.length / limit),
+        },
+        source: 'ESPN Public Scoreboard API',
+        isRealData: true,
+        lastUpdated: new Date().toISOString(),
+      };
+    }
+
+    const sportLabel = query?.sport === 'boxing' ? 'boxing' : query?.sport === 'mma' ? 'MMA' : 'combat sports';
+    const unavailableMsg = query?.sport === 'boxing' ? 'No live boxing data available' : `No live ${sportLabel} data available`;
 
     return {
-      data: formatted,
+      data: [],
       meta: {
-        total,
+        total: 0,
         page,
         limit,
-        totalPages: Math.ceil(total / limit),
+        totalPages: 0,
       },
+      isUnavailable: true,
+      message: unavailableMsg,
+      source: 'ESPN Public Scoreboard API',
+      isRealData: false,
+      lastUpdated: new Date().toISOString(),
     };
   }
 
   async findOne(id: string) {
     const fight = await this.prisma.fight.findUnique({ where: { id } });
-    if (!fight) {
-      throw new NotFoundException(`Fight with ID "${id}" not found.`);
+    if (fight) {
+      return this.formatFight(fight);
     }
-    return this.formatFight(fight);
+
+    // Search provider fights
+    const providerFights = await this.providerService.getFights();
+    const found = providerFights.find((f) => f.id === id);
+    if (found) {
+      return found;
+    }
+
+    throw new NotFoundException(`Fight with ID "${id}" not found.`);
   }
 
   async create(data: any) {

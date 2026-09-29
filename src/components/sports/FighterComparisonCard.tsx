@@ -115,11 +115,11 @@ export function FighterComparisonCard({ fight }: FighterComparisonCardProps) {
       {/* Win Probability Bar */}
       <div className="space-y-1.5 mb-4">
         <div className="flex items-center justify-between text-[11px] font-mono text-slate-400">
-          <span className="text-red-400">{fight.winProbability.fighter1}%</span>
-          <span className="text-[10px] text-slate-500 uppercase tracking-widest">
-            FIGHT PROBABILITY
+          <span className="text-red-400 font-bold">{fight.winProbability.fighter1}%</span>
+          <span className="text-[10px] text-cyan-400/90 font-bold uppercase tracking-wider">
+            STATISTICAL COMBAT ESTIMATE
           </span>
-          <span className="text-blue-400">{fight.winProbability.fighter2}%</span>
+          <span className="text-blue-400 font-bold">{fight.winProbability.fighter2}%</span>
         </div>
         <div className="w-full h-2 bg-slate-900 rounded-full overflow-hidden flex border border-slate-800">
           <div
@@ -130,6 +130,9 @@ export function FighterComparisonCard({ fight }: FighterComparisonCardProps) {
             className="h-full bg-blue-500 transition-all duration-500"
             style={{ width: `${fight.winProbability.fighter2}%` }}
           />
+        </div>
+        <div className="text-[9px] text-slate-500 font-mono text-center pt-0.5">
+          Model probabilistic estimate • Not a guaranteed outcome
         </div>
       </div>
 

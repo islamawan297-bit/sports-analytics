@@ -204,7 +204,7 @@ export function AuthModal() {
                     <input
                       type="text"
                       required
-                      placeholder="e.g. Alex Rivera"
+                      placeholder="e.g. Jane Doe"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 pl-9 pr-3 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
@@ -220,7 +220,7 @@ export function AuthModal() {
                   <input
                     type="email"
                     required
-                    placeholder="user@statsedge.pro"
+                    placeholder="name@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 pl-9 pr-3 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"

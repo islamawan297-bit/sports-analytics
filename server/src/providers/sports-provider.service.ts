@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ISportsProvider, LiveScoreItem, HeadToHeadStats, InjuryReport } from './sports-provider.interface';
+import { ISportsProvider, LiveScoreItem, FightItem, HeadToHeadStats, InjuryReport } from './sports-provider.interface';
 import { EspnPublicProvider } from './drivers/espn-public.provider';
 import { MockEnrichedProvider } from './drivers/mock-enriched.provider';
 import { CacheService } from '../cache/cache.service';
@@ -15,6 +15,22 @@ export class SportsProviderService {
     private cache: CacheService,
   ) {
     this.providers = [this.espnProvider, this.mockProvider];
+  }
+
+  async getFights(sportId?: string): Promise<FightItem[]> {
+    const cacheKey = `provider_fights_${sportId || 'all'}`;
+    const cached = await this.cache.get<FightItem[]>(cacheKey);
+    if (cached) return cached;
+
+    let fights: FightItem[] = [];
+    try {
+      fights = await this.espnProvider.getFights(sportId);
+    } catch (err: any) {
+      this.logger.warn(`Primary provider fight fetch failed: ${err.message}`);
+    }
+
+    await this.cache.set(cacheKey, fights, 60); // 60s cache TTL
+    return fights;
   }
 
   async getLiveScores(sportId?: string): Promise<LiveScoreItem[]> {

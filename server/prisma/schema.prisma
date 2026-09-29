@@ -3,13 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
-}
-
-enum Role {
-  USER
-  ADMIN
 }
 
 model User {
@@ -17,7 +12,7 @@ model User {
   email     String   @unique
   password  String
   name      String
-  role      Role     @default(USER)
+  role      String   @default("USER")
   favorites String?  // JSON array of favorite team/player IDs
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

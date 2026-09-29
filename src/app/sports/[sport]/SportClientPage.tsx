@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
 import { 
   Trophy, 
   Flame, 
@@ -19,6 +18,7 @@ import { LiveGameCard } from '@/components/dashboard/LiveGameCard';
 import { FighterComparisonCard } from '@/components/sports/FighterComparisonCard';
 import { StandingsTable } from '@/components/sports/StandingsTable';
 import { StatRadarChart } from '@/components/charts/StatRadarChart';
+import { Game, Fight, Team, Player, StandingRow, SportType } from '@/types/sports';
 import { 
   SPORTS_LIST, 
   MOCK_GAMES, 
@@ -28,13 +28,65 @@ import {
   MOCK_FIGHTERS, 
   MOCK_STANDINGS 
 } from '@/data/mockData';
-import { SportType } from '@/types/sports';
 
 export default function SportClientPage({ params }: { params: { sport: string } }) {
   const sportId = params.sport as SportType;
   const currentSport = SPORTS_LIST.find((s) => s.id === sportId);
 
   const [activeTab, setActiveTab] = useState<string>('overview');
+  const [apiGames, setApiGames] = useState<Game[]>([]);
+  const [apiFights, setApiFights] = useState<Fight[]>([]);
+  const [fightsUnavailable, setFightsUnavailable] = useState<boolean>(false);
+  const [apiStandings, setApiStandings] = useState<StandingRow[]>([]);
+  const [apiTeams, setApiTeams] = useState<Team[]>([]);
+  const [apiPlayers, setApiPlayers] = useState<Player[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    async function fetchSportApiData() {
+      if (!sportId) return;
+      setLoading(true);
+      try {
+        const [gamesRes, fightsRes, standingsRes, teamsRes, playersRes] = await Promise.all([
+          fetch(`/api/games?sport=${sportId}`),
+          fetch(`/api/fights?sport=${sportId}`),
+          fetch(`/api/standings/${sportId}`),
+          fetch(`/api/teams?sport=${sportId}`),
+          fetch(`/api/players?sport=${sportId}`)
+        ]);
+
+        if (gamesRes.ok) {
+          const gamesData = await gamesRes.json();
+          if (Array.isArray(gamesData) && gamesData.length > 0) setApiGames(gamesData);
+        }
+        if (fightsRes.ok) {
+          const fightsJson = await fightsRes.json();
+          const fightList = Array.isArray(fightsJson) ? fightsJson : fightsJson?.data || [];
+          setApiFights(fightList);
+          if (fightsJson?.isUnavailable || fightList.length === 0) {
+            setFightsUnavailable(true);
+          }
+        }
+        if (standingsRes.ok) {
+          const standingsData = await standingsRes.json();
+          if (Array.isArray(standingsData) && standingsData.length > 0) setApiStandings(standingsData);
+        }
+        if (teamsRes.ok) {
+          const teamsData = await teamsRes.json();
+          if (Array.isArray(teamsData) && teamsData.length > 0) setApiTeams(teamsData);
+        }
+        if (playersRes.ok) {
+          const playersData = await playersRes.json();
+          if (Array.isArray(playersData) && playersData.length > 0) setApiPlayers(playersData);
+        }
+      } catch (err) {
+        console.error(`Failed to fetch API data for sport ${sportId}:`, err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchSportApiData();
+  }, [sportId]);
 
   if (!currentSport) {
     return (
@@ -53,13 +105,34 @@ export default function SportClientPage({ params }: { params: { sport: string } 
     );
   }
 
-  // Filter content for this sport
-  const sportGames = MOCK_GAMES.filter((g) => g.sport === sportId);
-  const sportFights = MOCK_FIGHTS.filter((f) => f.sport === sportId);
-  const sportTeams = MOCK_TEAMS.filter((t) => t.sport === sportId);
-  const sportPlayers = MOCK_PLAYERS.filter((p) => p.sport === sportId);
-  const sportFighters = MOCK_FIGHTERS.filter((f) => f.sport === sportId);
-  const standings = MOCK_STANDINGS[sportId] || [];
+  // Filter content for this sport (using real API data when available)
+  const sportGames = apiGames.length > 0 ? apiGames : MOCK_GAMES.filter((g) => g.sport === sportId);
+  const sportFights = apiFights;
+  const sportTeams = apiTeams.length > 0 ? apiTeams : MOCK_TEAMS.filter((t) => t.sport === sportId);
+  const sportPlayers = apiPlayers.length > 0 ? apiPlayers : MOCK_PLAYERS.filter((p) => p.sport === sportId);
+  
+  // Extract real fighters from active fights if available
+  const realFighters = sportFights.flatMap((f) => [
+    {
+      id: f.fighter1.id,
+      name: f.fighter1.name,
+      nickname: f.fighter1.nickname || '',
+      weightClass: f.weightClass,
+      avatar: f.fighter1.avatar,
+      record: { wins: parseInt(f.fighter1.record.split('-')[0] || '0', 10), losses: parseInt(f.fighter1.record.split('-')[1] || '0', 10), draws: 0, kos: 0 },
+    },
+    {
+      id: f.fighter2.id,
+      name: f.fighter2.name,
+      nickname: f.fighter2.nickname || '',
+      weightClass: f.weightClass,
+      avatar: f.fighter2.avatar,
+      record: { wins: parseInt(f.fighter2.record.split('-')[0] || '0', 10), losses: parseInt(f.fighter2.record.split('-')[1] || '0', 10), draws: 0, kos: 0 },
+    },
+  ]);
+
+  const sportFighters = realFighters.length > 0 ? realFighters : MOCK_FIGHTERS.filter((f) => f.sport === sportId);
+  const standings = apiStandings.length > 0 ? apiStandings : (MOCK_STANDINGS[sportId] || []);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
@@ -114,8 +187,14 @@ export default function SportClientPage({ params }: { params: { sport: string } 
                       <FighterComparisonCard key={fight.id} fight={fight} />
                     ))
                   ) : (
-                    <div className="col-span-2 p-8 text-center bg-slate-900/60 rounded-2xl border border-slate-800 text-slate-400 text-xs font-mono">
-                      No live fights currently active for {currentSport.name}. Check upcoming title cards.
+                    <div className="col-span-2 p-8 text-center bg-slate-900/80 rounded-2xl border border-amber-500/30 space-y-3">
+                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-mono font-bold uppercase">
+                        Combat Data Unavailable
+                      </div>
+                      <h3 className="text-sm font-semibold text-white">No Active Provider Fight Cards Currently Scheduled</h3>
+                      <p className="text-xs text-slate-400 font-mono max-w-md mx-auto">
+                        Official fight schedules and statistics for {currentSport.name} are updated dynamically as soon as external licensed provider feeds publish bout arrangements.
+                      </p>
                     </div>
                   )}
                 </div>

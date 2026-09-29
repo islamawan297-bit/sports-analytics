@@ -27,14 +27,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const savedToken = localStorage.getItem('sports_analytics_jwt');
-    const savedUser = localStorage.getItem('sports_analytics_user');
-    if (savedToken && savedUser) {
+    if (savedToken) {
       setToken(savedToken);
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch {
-        // Ignore JSON parse errors
+      const savedUser = localStorage.getItem('sports_analytics_user');
+      if (savedUser) {
+        try {
+          setUser(JSON.parse(savedUser));
+        } catch {
+          // Ignore JSON parse errors
+        }
       }
+      api
+        .getProfile(savedToken)
+        .then((profile) => {
+          setUser(profile);
+          localStorage.setItem('sports_analytics_user', JSON.stringify(profile));
+        })
+        .catch(() => {
+          setToken(null);
+          setUser(null);
+          localStorage.removeItem('sports_analytics_jwt');
+          localStorage.removeItem('sports_analytics_user');
+        });
+    } else {
+      setToken(null);
+      setUser(null);
+      localStorage.removeItem('sports_analytics_jwt');
+      localStorage.removeItem('sports_analytics_user');
     }
   }, []);
 

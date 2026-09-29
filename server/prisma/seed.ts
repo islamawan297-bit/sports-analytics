@@ -7,8 +7,8 @@ async function main() {
   console.log('Seeding Sports Analytics database...');
 
   // 1. Create Default Users (ADMIN and USER roles)
-  const hashedAdminPassword = await bcrypt.hash('AdminPass123!', 10);
-  const hashedUserPassword = await bcrypt.hash('UserPass123!', 10);
+  const hashedAdminPassword = await bcrypt.hash('Admin123!', 10);
+  const hashedUserPassword = await bcrypt.hash('User123!', 10);
 
   const admin = await prisma.user.upsert({
     where: { email: 'admin@statsedge.pro' },
@@ -294,49 +294,8 @@ async function main() {
   }
   console.log('Games seeded.');
 
-  // 6. Seed Combat Fights
-  const fights = [
-    {
-      id: 'boxing-fight-1',
-      sportId: 'boxing',
-      status: 'live',
-      startTime: 'Tonight, 11:00 PM EST',
-      venue: 'T-Mobile Arena, Las Vegas',
-      weightClass: 'Super Middleweight Title (168 lbs)',
-      roundsMax: 12,
-      periodText: 'Round 8 of 12',
-      fighter1: JSON.stringify({ id: 'canelo-alvarez', name: 'Canelo Alvarez', nickname: 'El Canelo', avatar: 'https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?w=160&auto=format&fit=crop&q=80', record: '61-2-2 (39 KO)', score: 68, cornerColor: 'red', weightClass: 'Super Middleweight' }),
-      fighter2: JSON.stringify({ id: 'terence-crawford', name: 'Terence Crawford', nickname: 'Bud', avatar: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=160&auto=format&fit=crop&q=80', record: '40-0-0 (31 KO)', score: 66, cornerColor: 'blue', weightClass: 'Super Middleweight' }),
-      winProbability: JSON.stringify({ fighter1: 58.2, fighter2: 41.8 }),
-      odds: JSON.stringify({ fighter1Odds: '-150', fighter2Odds: '+125', homeOdds: '-150', awayOdds: '+125' }),
-      roundStats: JSON.stringify([
-        { round: 1, fighter1Strikes: 14, fighter2Strikes: 11 },
-        { round: 2, fighter1Strikes: 16, fighter2Strikes: 18 },
-      ]),
-      winProbabilityTimeline: JSON.stringify([
-        { time: 'R1', homeProb: 50.0, awayProb: 50.0 },
-        { time: 'R7', homeProb: 58.2, awayProb: 41.8 },
-      ]),
-      taleOfTheTape: JSON.stringify({
-        height: ['5\'8"', '5\'8"'],
-        reach: ['70.5 in', '74.0 in'],
-        stance: ['Orthodox', 'Southpaw'],
-        age: [34, 37],
-        strikingAccuracy: ['48.5%', '46.8%'],
-        knockoutRate: ['63.9%', '77.5%'],
-      }),
-      keyInsight: 'Canelo has landed 42 power body shots through 7 rounds, slowing Crawford down in the center.',
-    },
-  ];
-
-  for (const f of fights) {
-    await prisma.fight.upsert({
-      where: { id: f.id },
-      update: f,
-      create: f,
-    });
-  }
-  console.log('Fights seeded.');
+  // 6. Combat Fights (fetched live from external ESPN API provider only)
+  console.log('Combat sports configured for live external provider feeds.');
 
   console.log('Database seeding complete successfully!');
 }

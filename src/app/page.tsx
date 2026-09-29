@@ -25,7 +25,23 @@ import { WinProbabilityChart } from '@/components/charts/WinProbabilityChart';
 
 export default function LandingPage() {
   const featuredGame = MOCK_GAMES[0];
-  const featuredFight = MOCK_FIGHTS[0];
+  const [featuredFight, setFeaturedFight] = React.useState<any>(null);
+
+  React.useEffect(() => {
+    async function loadFeaturedFight() {
+      try {
+        const res = await fetch('/api/fights');
+        if (res.ok) {
+          const json = await res.json();
+          const fightList = Array.isArray(json) ? json : json?.data || [];
+          if (fightList.length > 0) {
+            setFeaturedFight(fightList[0]);
+          }
+        }
+      } catch (e) {}
+    }
+    loadFeaturedFight();
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-950 text-white selection:bg-cyan-500 selection:text-slate-950">
@@ -251,7 +267,26 @@ export default function LandingPage() {
             </div>
 
             <div>
-              <FighterComparisonCard fight={featuredFight} />
+              {featuredFight ? (
+                <FighterComparisonCard fight={featuredFight} />
+              ) : (
+                <div className="glass-card rounded-2xl p-8 border border-slate-800 text-center space-y-4">
+                  <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center mx-auto text-red-400">
+                    <Flame className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-base font-bold text-white">Live Combat Sports Radar</h3>
+                  <p className="text-xs text-slate-400 font-mono leading-relaxed">
+                    Real-time fight cards, fighter win probabilities, and tale-of-the-tape metrics sync live from official API provider feeds.
+                  </p>
+                  <Link
+                    href="/sports/mma"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-cyan-400 hover:text-cyan-300"
+                  >
+                    <span>View MMA & UFC Schedule</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              )}
             </div>
 
           </div>
