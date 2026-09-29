@@ -165,25 +165,29 @@ export async function getLiveGamesFromProvider(sport?: string): Promise<Game[]> 
         };
       });
       allGames.push(...transformed);
-    } else if (s === 'nfl') {
-      const espnNflGames = await fetchNFLGamesFromESPN();
-      if (espnNflGames.length > 0) {
-        allGames.push(...espnNflGames);
-      } else {
-        allGames.push(...MOCK_GAMES.filter((g) => g.sport === s));
-      }
     } else {
-      const mockFiltered = MOCK_GAMES.filter((g) => g.sport === s);
-      allGames.push(...mockFiltered);
+      const espnGames = await fetchGamesFromESPN(s);
+      if (espnGames.length > 0) {
+        allGames.push(...espnGames);
+      }
     }
   }
 
-  return allGames.length > 0 ? allGames : MOCK_GAMES;
+  return allGames;
 }
 
-async function fetchNFLGamesFromESPN(): Promise<Game[]> {
+const ESPN_ENDPOINTS: Record<string, string> = {
+  nba: 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard',
+  nfl: 'https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard',
+  mlb: 'https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard',
+  nhl: 'https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/scoreboard',
+  mls: 'https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/scoreboard',
+};
+
+async function fetchGamesFromESPN(sport: string): Promise<Game[]> {
+  const url = ESPN_ENDPOINTS[sport];
+  if (!url) return [];
   try {
-    const url = 'https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard';
     const res = await fetch(url, { next: { revalidate: 60 } });
     if (!res.ok) return [];
     const data = await res.json();
@@ -213,26 +217,26 @@ async function fetchNFLGamesFromESPN(): Promise<Game[]> {
         : '2026 Season Game';
 
       return {
-        id: `nfl-espn-${evt.id}`,
-        sport: 'nfl' as SportType,
+        id: `${sport}-espn-${evt.id}`,
+        sport: sport as SportType,
         status: isInProgress ? ('live' as const) : isCompleted ? ('final' as const) : ('upcoming' as const),
         startTime: gameDateStr,
-        venue: competition?.venue?.fullName || 'NFL Stadium',
+        venue: competition?.venue?.fullName || `${sport.toUpperCase()} Arena`,
         periodText: evt.status?.type?.detail || evt.status?.type?.description || 'Scheduled',
         homeTeam: {
-          id: homeComp.team?.abbreviation?.toLowerCase() || 'home',
-          name: homeComp.team?.displayName || 'Home Team',
+          id: (homeComp.team?.abbreviation || homeComp.team?.displayName || 'home').toLowerCase(),
+          name: homeComp.team?.displayName || homeComp.team?.name || 'Home Team',
           code: homeComp.team?.abbreviation || 'HOME',
           score: homeScore,
-          logo: homeComp.team?.logo || 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=120&auto=format&fit=crop&q=80',
+          logo: homeComp.team?.logo || 'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=120&auto=format&fit=crop&q=80',
           record: homeComp.records?.[0]?.summary || '0-0',
         },
         awayTeam: {
-          id: awayComp.team?.abbreviation?.toLowerCase() || 'away',
-          name: awayComp.team?.displayName || 'Away Team',
+          id: (awayComp.team?.abbreviation || awayComp.team?.displayName || 'away').toLowerCase(),
+          name: awayComp.team?.displayName || awayComp.team?.name || 'Away Team',
           code: awayComp.team?.abbreviation || 'AWAY',
           score: awayScore,
-          logo: awayComp.team?.logo || 'https://images.unsplash.com/photo-1566577739112-5180d4bf9390?w=120&auto=format&fit=crop&q=80',
+          logo: awayComp.team?.logo || 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=120&auto=format&fit=crop&q=80',
           record: awayComp.records?.[0]?.summary || '0-0',
         },
         winProbability: {
@@ -245,11 +249,11 @@ async function fetchNFLGamesFromESPN(): Promise<Game[]> {
           spread: 'PK',
           overUnder: 'O/U 44.5',
         },
-        keyInsight: `Verified 2026 NFL Season Matchup: ${evt.name}`,
+        keyInsight: `Verified 2026 ${sport.toUpperCase()} Matchup: ${evt.name}`,
       };
     });
   } catch (err) {
-    console.warn('ESPN NFL API fetch error:', err);
+    console.warn(`ESPN ${sport} API fetch error:`, err);
     return [];
   }
 }
