@@ -76,7 +76,7 @@ export default function PlayerClientPage({ params }: { params: { id: string } })
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60 text-slate-300">
-                {fighter.careerLog.map((log, idx) => (
+                {(fighter.careerLog || []).map((log, idx) => (
                   <tr key={idx}>
                     <td className="py-3 px-4 text-slate-400">{log.date}</td>
                     <td className="py-3 px-4 font-bold text-white">{log.opponent}</td>
@@ -98,39 +98,43 @@ export default function PlayerClientPage({ params }: { params: { id: string } })
   }
 
   // Ball Athlete View
+  const playerStats = player?.stats || {};
+  const recentGames = player?.recentGames || [];
+  const trendData = player?.trendData || [];
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 pb-16">
       
       {/* Top Nav */}
       <div className="bg-slate-900/80 border-b border-slate-800 py-3 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <Link href={`/sports/${player!.sport}`} className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white">
+          <Link href={`/sports/${player?.sport || 'nba'}`} className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white">
             <ArrowLeft className="w-4 h-4" />
-            <span>Back to {player!.sport.toUpperCase()}</span>
+            <span>Back to {(player?.sport || 'nba').toUpperCase()}</span>
           </Link>
-          <span className="font-mono text-xs text-cyan-400 font-bold">{player!.teamName} • #{player!.number}</span>
+          <span className="font-mono text-xs text-cyan-400 font-bold">{player?.teamName || 'Pro Team'} • #{player?.number || '00'}</span>
         </div>
       </div>
 
       {/* Athlete Header */}
       <section className="bg-gradient-to-b from-slate-900 to-slate-950 border-b border-slate-800 py-10 px-4">
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center gap-6">
-          <img src={player!.avatar} alt={player!.name} className="w-24 h-24 sm:w-32 sm:h-32 rounded-2xl object-cover border-2 border-slate-800 shadow-glow" />
+          <img src={player?.avatar || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80'} alt={player?.name || 'Player'} className="w-24 h-24 sm:w-32 sm:h-32 rounded-2xl object-cover border-2 border-slate-800 shadow-glow" />
           <div className="space-y-2 text-center md:text-left flex-1">
             <div className="flex items-center justify-center md:justify-start gap-2">
               <span className="px-2.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono text-xs font-bold uppercase">
-                {player!.position}
+                {player?.position || 'PRO'}
               </span>
               <span className="text-xs font-mono text-slate-400">
-                {player!.experience}
+                {player?.experience || 'Pro Athlete'}
               </span>
             </div>
-            <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight">{player!.name}</h1>
+            <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight">{player?.name || 'Athlete'}</h1>
             <p className="text-xs text-slate-400 flex flex-wrap items-center justify-center md:justify-start gap-4 font-mono">
-              <span>Height: <strong className="text-slate-200">{player!.height}</strong></span>
-              <span>Weight: <strong className="text-slate-200">{player!.weight}</strong></span>
-              <span>Age: <strong className="text-slate-200">{player!.age}</strong></span>
-              <span>Birthplace: <strong className="text-slate-200">{player!.birthplace}</strong></span>
+              <span>Height: <strong className="text-slate-200">{player?.height || "6'6\""}</strong></span>
+              <span>Weight: <strong className="text-slate-200">{player?.weight || '220 lbs'}</strong></span>
+              <span>Age: <strong className="text-slate-200">{player?.age || 26}</strong></span>
+              <span>Birthplace: <strong className="text-slate-200">{player?.birthplace || 'USA'}</strong></span>
             </p>
           </div>
         </div>
@@ -150,7 +154,7 @@ export default function PlayerClientPage({ params }: { params: { id: string } })
             </span>
           </div>
           <p className="leading-relaxed">
-            Athlete Performance Profile: {player!.name} ({player!.position}) averages {player!.stats.PPG || player!.stats.ppg || '24.8'} PPG, {player!.stats.RPG || player!.stats.rpg || '7.8'} RPG, and {player!.stats.APG || player!.stats.apg || '8.4'} APG. Output reflects top-tier offensive efficiency.
+            Athlete Performance Profile: {player?.name || 'Athlete'} ({player?.position || 'PRO'}) averages {playerStats.PPG || playerStats.ppg || '24.8'} PPG, {playerStats.RPG || playerStats.rpg || '7.8'} RPG, and {playerStats.APG || playerStats.apg || '8.4'} APG. Output reflects top-tier offensive efficiency.
           </p>
         </div>
 
@@ -160,10 +164,10 @@ export default function PlayerClientPage({ params }: { params: { id: string } })
             Season Key Performance Indicators
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-            {Object.entries(player!.stats).map(([label, val]) => (
+            {Object.entries(playerStats).map(([label, val]) => (
               <div key={label} className="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 text-center font-mono">
                 <div className="text-[11px] text-slate-400 uppercase">{label}</div>
-                <div className="text-xl font-black text-cyan-400 mt-1">{val}</div>
+                <div className="text-xl font-black text-cyan-400 mt-1">{String(val)}</div>
               </div>
             ))}
           </div>
@@ -174,7 +178,7 @@ export default function PlayerClientPage({ params }: { params: { id: string } })
           <h2 className="text-sm font-mono font-bold text-cyan-400 uppercase tracking-wider">
             Recent Scoring & Output Trend
           </h2>
-          <ScoringTrendChart data={player!.trendData} metricLabel="Points Output" color="#10b981" />
+          <ScoringTrendChart data={trendData} metricLabel="Points Output" color="#10b981" />
         </section>
 
         {/* Recent Game Log */}
@@ -191,7 +195,7 @@ export default function PlayerClientPage({ params }: { params: { id: string } })
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60 text-slate-300">
-                {player!.recentGames.map((g, idx) => (
+                {recentGames.map((g: any, idx: number) => (
                   <tr key={idx}>
                     <td className="py-3 px-4 text-slate-400">{g.date}</td>
                     <td className="py-3 px-4 font-bold text-white">{g.opponent}</td>
