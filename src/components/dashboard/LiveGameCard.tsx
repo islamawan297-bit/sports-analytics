@@ -104,20 +104,20 @@ export function LiveGameCard({ game }: LiveGameCardProps) {
       {/* Win Probability Bar */}
       <div className="space-y-1.5 mb-4">
         <div className="flex items-center justify-between text-[11px] font-mono text-slate-400">
-          <span>{game.homeTeam.code} {game.winProbability.home}%</span>
+          <span>{game?.homeTeam?.code || 'HOME'} {game?.winProbability?.home ?? 50}%</span>
           <span className="text-[10px] text-slate-500 uppercase tracking-widest flex items-center gap-1">
             <TrendingUp className="w-3 h-3 text-cyan-400" /> WIN PROBABILITY
           </span>
-          <span>{game.winProbability.away}% {game.awayTeam.code}</span>
+          <span>{game?.winProbability?.away ?? 50}% {game?.awayTeam?.code || 'AWAY'}</span>
         </div>
         <div className="w-full h-2 bg-slate-900 rounded-full overflow-hidden flex border border-slate-800">
           <div
             className="h-full bg-cyan-500 transition-all duration-500"
-            style={{ width: `${game.winProbability.home}%` }}
+            style={{ width: `${game?.winProbability?.home ?? 50}%` }}
           />
           <div
             className="h-full bg-blue-600 transition-all duration-500"
-            style={{ width: `${game.winProbability.away}%` }}
+            style={{ width: `${game?.winProbability?.away ?? 50}%` }}
           />
         </div>
       </div>
@@ -125,8 +125,8 @@ export function LiveGameCard({ game }: LiveGameCardProps) {
       {/* Footer Details & Link */}
       <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs">
         <div className="flex items-center gap-3 text-[11px] font-mono text-slate-400">
-          <span>Odds: {game.odds.homeOdds} / {game.odds.awayOdds}</span>
-          {game.odds.spread && <span>Spread: {game.odds.spread}</span>}
+          <span>Odds: {game?.odds?.homeOdds || '-110'} / {game?.odds?.awayOdds || '+110'}</span>
+          {game?.odds?.spread && <span>Spread: {game.odds.spread}</span>}
         </div>
         <Link
           href={`/game/${game.id}`}

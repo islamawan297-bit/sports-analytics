@@ -115,20 +115,20 @@ export function FighterComparisonCard({ fight }: FighterComparisonCardProps) {
       {/* Win Probability Bar */}
       <div className="space-y-1.5 mb-4">
         <div className="flex items-center justify-between text-[11px] font-mono text-slate-400">
-          <span className="text-red-400 font-bold">{fight.winProbability.fighter1}%</span>
+          <span className="text-red-400 font-bold">{fight?.winProbability?.fighter1 ?? 50}%</span>
           <span className="text-[10px] text-cyan-400/90 font-bold uppercase tracking-wider">
             STATISTICAL COMBAT ESTIMATE
           </span>
-          <span className="text-blue-400 font-bold">{fight.winProbability.fighter2}%</span>
+          <span className="text-blue-400 font-bold">{fight?.winProbability?.fighter2 ?? 50}%</span>
         </div>
         <div className="w-full h-2 bg-slate-900 rounded-full overflow-hidden flex border border-slate-800">
           <div
             className="h-full bg-red-500 transition-all duration-500"
-            style={{ width: `${fight.winProbability.fighter1}%` }}
+            style={{ width: `${fight?.winProbability?.fighter1 ?? 50}%` }}
           />
           <div
             className="h-full bg-blue-500 transition-all duration-500"
-            style={{ width: `${fight.winProbability.fighter2}%` }}
+            style={{ width: `${fight?.winProbability?.fighter2 ?? 50}%` }}
           />
         </div>
         <div className="text-[9px] text-slate-500 font-mono text-center pt-0.5">
@@ -139,7 +139,7 @@ export function FighterComparisonCard({ fight }: FighterComparisonCardProps) {
       {/* Footer */}
       <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs">
         <span className="text-[11px] font-mono text-slate-400">
-          Odds: {fight.odds.fighter1Odds} / {fight.odds.fighter2Odds}
+          Odds: {fight?.odds?.fighter1Odds || '-110'} / {fight?.odds?.fighter2Odds || '+110'}
         </span>
         <Link
           href={`/game/${fight.id}`}
