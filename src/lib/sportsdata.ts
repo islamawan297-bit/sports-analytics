@@ -282,6 +282,20 @@ export async function getFightsFromProvider(sport?: string) {
   };
 }
 
+function formatStreak(rawStreak: any): string {
+  if (rawStreak === null || rawStreak === undefined || rawStreak === '') return 'W1';
+  if (typeof rawStreak === 'number') {
+    if (rawStreak > 0) return `W${rawStreak}`;
+    if (rawStreak < 0) return `L${Math.abs(rawStreak)}`;
+    return 'W1';
+  }
+  const str = String(rawStreak).trim();
+  if (!str) return 'W1';
+  if (/^[0-9]+$/.test(str)) return `W${str}`;
+  if (/^-[0-9]+$/.test(str)) return `L${str.substring(1)}`;
+  return str.toUpperCase();
+}
+
 /**
  * Fetch Standings from SportsDataIO
  */
@@ -312,7 +326,7 @@ export async function getStandingsFromProvider(sport: string): Promise<StandingR
       pct: row.Percentage ? row.Percentage.toFixed(3) : '.500',
       gb: row.GamesBehind !== undefined ? `${row.GamesBehind}` : '-',
       diff: row.NetPoints || row.PointsDifferential ? `${row.NetPoints || row.PointsDifferential}` : '+0',
-      streak: row.Streak || 'W1',
+      streak: formatStreak(row.Streak),
       last10: row.LastTenWins !== undefined ? `${row.LastTenWins}-${row.LastTenLosses}` : '6-4',
     }));
   }

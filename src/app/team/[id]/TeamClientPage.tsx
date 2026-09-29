@@ -68,7 +68,7 @@ export default function TeamClientPage({ params }: { params: { id: string } }) {
                 {currentTeam.code}
               </span>
               <span className="text-xs font-mono text-emerald-400 font-bold">
-                Streak: {currentTeam.record.streak}
+                Streak: {String(currentTeam?.record?.streak ?? 'N/A')}
               </span>
             </div>
             <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight">{currentTeam.name}</h1>
