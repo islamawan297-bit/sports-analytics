@@ -7,9 +7,9 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    const rawKey = process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY || process.env.LLM_API_KEY || '';
-    const match = rawKey.match(/sk-[A-Za-z0-9_\-]+/);
-    const openaiKey = match ? match[0] : '';
+    const rawKey = String(process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY || process.env.LLM_API_KEY || '');
+    const tokens = rawKey.replace(/[\r\n\t]/g, ' ').split(/\s+/).filter(t => t.startsWith('sk-'));
+    const openaiKey = tokens.length > 0 ? tokens[0].trim() : '';
 
     if (openaiKey) {
       try {
