@@ -205,18 +205,18 @@ export default function GameClientPage({ params }: { params: { id: string } }) {
 
             </div>
 
-            {/* Dynamic AI Fight Insight Alert */}
+            {/* Dynamic Fight Insight / Statistical Prediction Alert */}
             {(analysis?.aiInsight || currentFight.keyInsight) && (
               <div className="mt-8 p-3.5 rounded-xl bg-red-950/40 border border-red-800/40 text-xs text-red-200 space-y-1 max-w-2xl mx-auto">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-red-400 shrink-0" />
                     <span className="font-bold text-red-300">
-                      {analysis?.aiInsight?.isRealAi ? 'AI Fight Analysis' : 'Combat Sports Metric Breakdown'}
+                      {analysis?.aiInsight?.isRealAi ? 'AI Fight Analysis' : 'Statistical Prediction'}
                     </span>
                   </div>
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-400">
-                    {analysis?.aiInsight?.provider || 'Combat Analysis Engine'}
+                    {analysis?.aiInsight?.provider || 'Statistical Engine'}
                   </span>
                 </div>
                 <p className="leading-relaxed">
@@ -340,14 +340,14 @@ export default function GameClientPage({ params }: { params: { id: string } }) {
 
           </div>
 
-          {/* Dynamic AI Match Insight Alert */}
+          {/* Dynamic Match Insight / Statistical Prediction Alert */}
           {(analysis?.aiInsight || currentGame!.keyInsight) && (
             <div className="mt-8 p-3.5 rounded-xl bg-cyan-950/40 border border-cyan-800/40 text-xs text-cyan-200 space-y-1 max-w-2xl mx-auto">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-cyan-400 shrink-0" />
                   <span className="font-bold text-cyan-300">
-                    {analysis?.aiInsight?.isRealAi ? 'AI Match Insight' : 'Real-Time Statistical Insight'}
+                    {analysis?.aiInsight?.isRealAi ? 'AI Match Insight' : 'Statistical Prediction'}
                   </span>
                 </div>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-400">
@@ -357,11 +357,6 @@ export default function GameClientPage({ params }: { params: { id: string } }) {
               <p className="leading-relaxed">
                 {analysis?.aiInsight?.insight || currentGame!.keyInsight}
               </p>
-              {analysis?.aiInsight?.disclaimer && (
-                <div className="text-[10px] text-amber-400/90 font-mono pt-1 border-t border-cyan-900/40">
-                  Notice: {analysis.aiInsight.disclaimer}
-                </div>
-              )}
             </div>
           )}
 

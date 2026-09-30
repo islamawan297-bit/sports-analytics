@@ -43,68 +43,53 @@ export async function POST(req: NextRequest) {
           const data = await openaiRes.json();
           const aiText = data?.choices?.[0]?.message?.content?.trim();
           if (aiText) {
-            return NextResponse.json({
-              insight: aiText,
-              isRealAi: true,
-              provider: 'OpenAI GPT-4o API',
-              timestamp: new Date().toISOString(),
-            }, {
-              headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate' }
-            });
+            return NextResponse.json(
+              {
+                insight: aiText,
+                isRealAi: true,
+                provider: 'OpenAI GPT-4o API',
+                timestamp: new Date().toISOString(),
+              },
+              {
+                headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate' },
+              }
+            );
           }
         } else {
-          const errBody = await openaiRes.text();
-          console.warn('OpenAI API non-200 response:', openaiRes.status, errBody);
-          return NextResponse.json({
-            insight: generateStatisticalFallback(body),
-            isRealAi: false,
-            provider: `OpenAI API Error ${openaiRes.status}`,
-            disclaimer: `OpenAI API Returned Status ${openaiRes.status}: ${errBody}`,
-            timestamp: new Date().toISOString(),
-          }, {
-            headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate' }
-          });
+          const errText = await openaiRes.text();
+          console.warn(`OpenAI API provider error (${openaiRes.status}):`, errText);
+          // Fall through to statistical engine fallback
         }
       } catch (err: any) {
         console.warn('OpenAI API request exception:', err.message);
-        return NextResponse.json({
-          insight: generateStatisticalFallback(body),
-          isRealAi: false,
-          provider: 'OpenAI Exception',
-          disclaimer: `OpenAI Exception: ${err.message}`,
-          timestamp: new Date().toISOString(),
-        }, {
-          headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate' }
-        });
+        // Fall through to statistical engine fallback
       }
     }
 
-    // Dynamic statistical fallback generated from real match input data when OpenAI key is unconfigured or rate-limited
+    // Dynamic statistical engine fallback generated from real match input data when OpenAI is unconfigured, out of credits, or rate-limited
     const fallback = generateStatisticalFallback(body);
-    const disclaimer = !openaiKey
-      ? 'OPENAI_API_KEY environment variable is not configured on Vercel. Displaying real-time statistical model insight.'
-      : 'OpenAI API request unavailable or rate-limited. Displaying real-time statistical model insight.';
 
-    return NextResponse.json({
-      insight: fallback,
-      isRealAi: false,
-      provider: 'Statistical Engine (OpenAI Key Unconfigured)',
-      disclaimer,
-      timestamp: new Date().toISOString(),
-    }, {
-      headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate' }
-    });
+    return NextResponse.json(
+      {
+        insight: fallback,
+        isRealAi: false,
+        provider: 'Statistical Engine',
+        timestamp: new Date().toISOString(),
+      },
+      {
+        headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate' },
+      }
+    );
   } catch (error: any) {
     return NextResponse.json(
       {
-        insight: 'Statistical Model Estimate: Probabilistic match win distribution calculated from verified team/fighter metrics.',
+        insight: 'Statistical Prediction: Probabilistic match win distribution calculated from verified team/fighter metrics.',
         isRealAi: false,
         provider: 'Statistical Engine',
-        disclaimer: `Error processing request: ${error.message}`,
       },
-      { 
+      {
         status: 200,
-        headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate' }
+        headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate' },
       }
     );
   }
@@ -147,17 +132,17 @@ function generateStatisticalFallback(body: any): string {
   if (isFight) {
     const f1Rec = body.fighter1Record || '0-0-0';
     const f2Rec = body.fighter2Record || '0-0-0';
-    return `Statistical Combat Estimate: ${leader} holds a ${leaderProb}% win probability edge based on verified bout records (${f1Rec} vs ${f2Rec}) and strike efficiency metrics.`;
+    return `Statistical Combat Breakdown: ${leader} holds a ${leaderProb}% win probability edge based on verified bout records (${f1Rec} vs ${f2Rec}) and strike efficiency metrics.`;
   }
 
   if (body.homeScore !== undefined && body.awayScore !== undefined) {
     const diff = body.homeScore - body.awayScore;
     if (diff > 0) {
-      return `Live Statistical Analysis: ${homeName} leads ${awayName} by ${diff} pts (${body.homeScore}-${body.awayScore}) in ${body.periodText || 'Live'}. Model projects ${homeName} at ${homeProb}% win probability.`;
+      return `Statistical Prediction: ${homeName} leads ${awayName} by ${diff} pts (${body.homeScore}-${body.awayScore}) in ${body.periodText || 'Live'}. Model projects ${homeName} at ${homeProb}% win probability.`;
     } else if (diff < 0) {
-      return `Live Statistical Analysis: ${awayName} holds a ${Math.abs(diff)}-pt lead (${body.awayScore}-${body.homeScore}) in ${body.periodText || 'Live'}. Model projects ${awayName} at ${awayProb}% win probability.`;
+      return `Statistical Prediction: ${awayName} holds a ${Math.abs(diff)}-pt lead (${body.awayScore}-${body.homeScore}) in ${body.periodText || 'Live'}. Model projects ${awayName} at ${awayProb}% win probability.`;
     }
   }
 
-  return `Match Prediction Insight: ${leader} projected with a ${leaderProb}% win probability edge over ${leader === homeName ? awayName : homeName} based on statistical net rating differential.`;
+  return `Statistical Prediction: ${leader} projected with a ${leaderProb}% win probability edge over ${leader === homeName ? awayName : homeName} based on statistical net rating differential.`;
 }
