@@ -8,18 +8,22 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
 
     const rawKey = String(process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY || process.env.LLM_API_KEY || '');
-    const tokens = rawKey.replace(/[\r\n\t]/g, ' ').split(/\s+/).filter(t => t.startsWith('sk-'));
-    const openaiKey = tokens.length > 0 ? tokens[0].trim() : '';
+    let cleanKey = rawKey.replace(/[^a-zA-Z0-9_\-]/g, '');
+    if (cleanKey.indexOf('sk-proj-', 5) > 0) {
+      cleanKey = cleanKey.substring(0, cleanKey.indexOf('sk-proj-', 5));
+    } else if (cleanKey.indexOf('sk-', 3) > 0) {
+      cleanKey = cleanKey.substring(0, cleanKey.indexOf('sk-', 3));
+    }
+    const openaiKey = cleanKey.startsWith('sk-') ? cleanKey : '';
 
     if (openaiKey) {
       try {
         const prompt = buildInsightPrompt(body);
-        const cleanKey = String(openaiKey).replace(/[^\x20-\x7E]/g, '').trim();
         const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${cleanKey}`,
+            'Authorization': `Bearer ${openaiKey}`,
           },
           body: JSON.stringify({
             model: 'gpt-4o-mini',
