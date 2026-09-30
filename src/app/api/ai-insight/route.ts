@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    const rawKey = String(process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY || process.env.LLM_API_KEY || '');
+    const rawKey = String(process.env.OPENAI_API_KEY || '');
     let cleanKey = rawKey.replace(/[^a-zA-Z0-9_\-]/g, '');
     if (cleanKey.indexOf('sk-proj-', 5) > 0) {
       cleanKey = cleanKey.substring(0, cleanKey.indexOf('sk-proj-', 5));
@@ -71,43 +71,17 @@ export async function POST(req: NextRequest) {
           insight: generateStatisticalFallback(body),
           isRealAi: false,
           provider: 'OpenAI Exception',
-          disclaimer: `OpenAI Exception: ${err.message} | Parsed Key Len: ${openaiKey.length} | CleanKeyPreview: ${openaiKey.substring(0, 15)}...`,
+          disclaimer: `OpenAI Exception: ${err.message}`,
           timestamp: new Date().toISOString(),
         }, {
           headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate' }
         });
       }
-    } else if (apiKey && process.env.GEMINI_API_KEY) {
-      try {
-        const prompt = buildInsightPrompt(body);
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
-        const geminiRes = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-          }),
-        });
-        if (geminiRes.ok) {
-          const data = await geminiRes.json();
-          const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-          if (text) {
-            return NextResponse.json({
-              insight: text,
-              isRealAi: true,
-              provider: 'Google Gemini 1.5 Flash API',
-              timestamp: new Date().toISOString(),
-            });
-          }
-        }
-      } catch (err: any) {
-        console.warn('Gemini API request exception:', err.message);
-      }
     }
 
     // Dynamic statistical fallback generated from real match input data when OpenAI key is unconfigured or rate-limited
     const fallback = generateStatisticalFallback(body);
-    const disclaimer = !apiKey
+    const disclaimer = !openaiKey
       ? 'OPENAI_API_KEY environment variable is not configured on Vercel. Displaying real-time statistical model insight.'
       : 'OpenAI API request unavailable or rate-limited. Displaying real-time statistical model insight.';
 
