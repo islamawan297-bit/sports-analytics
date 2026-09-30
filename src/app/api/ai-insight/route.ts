@@ -44,6 +44,8 @@ export async function POST(req: NextRequest) {
               isRealAi: true,
               provider: 'OpenAI GPT-4o API',
               timestamp: new Date().toISOString(),
+            }, {
+              headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate' }
             });
           }
         } else {
@@ -55,6 +57,8 @@ export async function POST(req: NextRequest) {
             provider: `OpenAI API Error ${openaiRes.status}`,
             disclaimer: `OpenAI API Returned Status ${openaiRes.status}: ${errBody}`,
             timestamp: new Date().toISOString(),
+          }, {
+            headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate' }
           });
         }
       } catch (err: any) {
@@ -65,6 +69,8 @@ export async function POST(req: NextRequest) {
           provider: 'OpenAI Exception',
           disclaimer: `OpenAI Exception: ${err.message} | Parsed Key Len: ${openaiKey.length} | CleanKeyPreview: ${openaiKey.substring(0, 15)}...`,
           timestamp: new Date().toISOString(),
+        }, {
+          headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate' }
         });
       }
     } else if (apiKey && process.env.GEMINI_API_KEY) {
@@ -107,6 +113,8 @@ export async function POST(req: NextRequest) {
       provider: 'Statistical Engine (OpenAI Key Unconfigured)',
       disclaimer,
       timestamp: new Date().toISOString(),
+    }, {
+      headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate' }
     });
   } catch (error: any) {
     return NextResponse.json(
@@ -116,7 +124,10 @@ export async function POST(req: NextRequest) {
         provider: 'Statistical Engine',
         disclaimer: `Error processing request: ${error.message}`,
       },
-      { status: 200 }
+      { 
+        status: 200,
+        headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate' }
+      }
     );
   }
 }
