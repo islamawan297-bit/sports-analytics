@@ -6,8 +6,10 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    const apiKey = process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY || process.env.LLM_API_KEY;
-    const openaiKey = process.env.OPENAI_API_KEY;
+    let openaiKey = (process.env.OPENAI_API_KEY || '').trim().replace(/[\r\n\t]/g, '');
+    if (openaiKey.includes('sk-') && openaiKey.indexOf('sk-', 3) !== -1) {
+      openaiKey = openaiKey.substring(0, openaiKey.indexOf('sk-', 3)).trim();
+    }
 
     if (openaiKey) {
       try {
