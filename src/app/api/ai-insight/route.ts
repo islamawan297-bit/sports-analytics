@@ -14,11 +14,12 @@ export async function POST(req: NextRequest) {
     if (openaiKey) {
       try {
         const prompt = buildInsightPrompt(body);
+        const cleanKey = String(openaiKey).replace(/[^\x20-\x7E]/g, '').trim();
         const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${openaiKey}`,
+            'Authorization': `Bearer ${cleanKey}`,
           },
           body: JSON.stringify({
             model: 'gpt-4o-mini',
@@ -62,7 +63,7 @@ export async function POST(req: NextRequest) {
           insight: generateStatisticalFallback(body),
           isRealAi: false,
           provider: 'OpenAI Exception',
-          disclaimer: `OpenAI Exception: ${err.message}`,
+          disclaimer: `OpenAI Exception: ${err.message} | Parsed Key Len: ${openaiKey.length} | CleanKeyPreview: ${openaiKey.substring(0, 15)}...`,
           timestamp: new Date().toISOString(),
         });
       }
