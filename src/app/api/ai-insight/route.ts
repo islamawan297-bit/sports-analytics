@@ -46,9 +46,23 @@ export async function POST(req: NextRequest) {
         } else {
           const errBody = await openaiRes.text();
           console.warn('OpenAI API non-200 response:', openaiRes.status, errBody);
+          return NextResponse.json({
+            insight: generateStatisticalFallback(body),
+            isRealAi: false,
+            provider: `OpenAI API Error ${openaiRes.status}`,
+            disclaimer: `OpenAI API Returned Status ${openaiRes.status}: ${errBody}`,
+            timestamp: new Date().toISOString(),
+          });
         }
       } catch (err: any) {
         console.warn('OpenAI API request exception:', err.message);
+        return NextResponse.json({
+          insight: generateStatisticalFallback(body),
+          isRealAi: false,
+          provider: 'OpenAI Exception',
+          disclaimer: `OpenAI Exception: ${err.message}`,
+          timestamp: new Date().toISOString(),
+        });
       }
     } else if (apiKey && process.env.GEMINI_API_KEY) {
       try {
