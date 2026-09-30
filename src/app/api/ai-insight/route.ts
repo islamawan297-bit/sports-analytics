@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
 export const revalidate = 0; // Dynamic route for live AI insights
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    let openaiKey = (process.env.OPENAI_API_KEY || '').trim().replace(/[\r\n\t]/g, '');
-    if (openaiKey.includes('sk-') && openaiKey.indexOf('sk-', 3) !== -1) {
-      openaiKey = openaiKey.substring(0, openaiKey.indexOf('sk-', 3)).trim();
-    }
+    const rawKey = process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY || process.env.LLM_API_KEY || '';
+    const match = rawKey.match(/sk-[A-Za-z0-9_\-]+/);
+    const openaiKey = match ? match[0] : '';
 
     if (openaiKey) {
       try {
