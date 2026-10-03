@@ -1,31 +1,8 @@
-# Stage 1: Build Next.js Application
-FROM node:20-alpine AS builder
-
+FROM node:20-slim
 WORKDIR /app
-
 COPY package*.json ./
-RUN npm ci
-
+RUN npm install --production
 COPY . .
-
-ENV NEXT_TELEMETRY_DISABLED=1
-RUN npm run build
-
-# Stage 2: Production Execution
-FROM node:20-alpine AS runner
-
-WORKDIR /app
-
-ENV NODE_ENV=production
-ENV PORT=3000
-ENV NEXT_TELEMETRY_DISABLED=1
-
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
-
+RUN mkdir -p data
 EXPOSE 3000
-
-CMD ["npm", "start"]
+CMD ["node", "server/index.js"]

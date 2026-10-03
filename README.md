@@ -1,125 +1,219 @@
-# Sports Analytics Platform - Enterprise Production Setup
+# FMFO Sports — Commentator Analytics Control Room
 
-A production-ready, full-stack Sports Analytics Platform built with **Next.js 14**, **TypeScript**, **TailwindCSS**, **Recharts**, **NestJS**, **Prisma ORM**, **PostgreSQL**, and **Redis**.
+**By FMFO Technologies Inc. (For My Fans Only)**
+*"The Intelligence Behind the Commentary"*
 
-The platform provides live scoreboards, match analytical dashboards, player performance trends, injury reports, a modular sports data provider layer across 7 sports (**NBA, NFL, MLB, MLS, NHL, Boxing, MMA**), a statistical prediction engine with confidence intervals, and a secure **System Admin Portal**.
-
----
-
-## 🌟 Key Features
-
-- **Multi-Sport Real-Time Intelligence**: Live scores, upcoming matches, results, box scores, play-by-play, and standings for NBA, NFL, MLB, MLS, NHL, Boxing, and MMA.
-- **Modular Data Provider Architecture (`ISportsProvider`)**: Seamless abstraction connecting live sports feeds (ESPN, TheSportsDB, OddsAPI) with fallbacks.
-- **Statistical Prediction Engine**: Computes expected score margins, win probabilities, and confidence intervals (`± 4.2 pts`) with mandatory statistical estimate disclaimers.
-- **Secure System Admin Portal (`/admin`)**:
-  - User role management (`USER` vs `ADMIN`).
-  - Provider latency & API key configuration.
-  - Real-time data sync trigger.
-  - Analysis engine weight tuning.
-  - Error logs & system monitoring.
-  - Database & Redis cache controls.
-  - API usage & latency statistics.
-- **Authentication & Security**:
-  - JWT Bearer authentication.
-  - Password hashing with `bcryptjs`.
-  - Role-based authorization (`@Roles('ADMIN')`, `RolesGuard`).
-  - Rate limiting & Redis-ready caching.
-  - Global `AllExceptionsFilter` for unified REST error handling.
+AI-powered sports analysis platform for commentators, analysts, and fans.
+Part of the FMFO ecosystem at [formyfansonly.com](https://www.formyfansonly.com)
 
 ---
 
-## 🚀 Quick Start (Local Development)
+## Publish in 5 Minutes
 
-### 1. Prerequisites
-- **Node.js** v20+ and **npm** v10+
-- **PostgreSQL** v16+ (or Docker)
-- **Redis** v7+ (optional, fallback in-memory)
+### Option A: Railway (Recommended — Free Tier Available)
 
-### 2. Backend Setup (`server/`)
+1. Push this folder to GitHub
+2. Go to [railway.app](https://railway.app) → New Project → Deploy from GitHub
+3. Select your repo
+4. Add environment variable: `ANTHROPIC_API_KEY` = your key from [console.anthropic.com](https://console.anthropic.com)
+5. Railway gives you a live URL — done
+
+### Option B: Render
+
+1. Push to GitHub
+2. Go to [render.com](https://render.com) → New Web Service → Connect repo
+3. Build command: `npm install`
+4. Start command: `node server/index.js`
+5. Add env var: `ANTHROPIC_API_KEY`
+6. Deploy — live URL in 2 minutes
+
+### Option C: Run Locally
+
 ```bash
-cd server
 npm install
-
-# Configure environment variables
-cp .env.example .env
-
-# Generate Prisma Client & Run Migrations
-npm run prisma:generate
-npm run prisma:migrate
-npm run prisma:seed
-
-# Start NestJS Backend API
-npm run dev
-# API running at http://localhost:4000/api
+cp .env.example .env        # Then add your ANTHROPIC_API_KEY
+npm start                    # Opens at http://localhost:3000
 ```
 
-### 3. Frontend Setup (Root)
-```bash
-# In the project root directory
-npm install
-
-# Start Next.js Development Server
-npm run dev
-# App running at http://localhost:3000
-```
-
----
-
-## 🔑 Default Accounts (Seeded Data)
-
-| Role | Email | Password | Access Rights |
-| :--- | :--- | :--- | :--- |
-| **System Admin** | `admin@statsedge.pro` | `AdminPass123!` | Full Admin Portal (`/admin`), CRUD APIs, Sync & Cache controls |
-| **Standard User** | `user@statsedge.pro` | `UserPass123!` | Dashboard, Match Analytics, Favorites, Profile management |
-
----
-
-## 🐳 Production Deployment with Docker Compose
-
-To deploy the full platform (PostgreSQL, Redis, NestJS API, Next.js Web) in production containers:
+### Option D: Docker
 
 ```bash
-# Build and launch all services in detached mode
-docker-compose up --build -d
-
-# Seed the database container
-docker exec -it sports_backend npm run prisma:seed
-
-# Access Applications
-# Frontend Web App: http://localhost:3000
-# Backend REST API: http://localhost:4000/api
+docker build -t fmfo-sports .
+docker run -d -p 3000:3000 -e ANTHROPIC_API_KEY=sk-ant-xxx fmfo-sports
 ```
 
 ---
 
-## 🧪 Testing
+## What's Inside — 14 Features
+
+| Feature | What It Does |
+|---------|-------------|
+| 🏠 Dashboard | Personal home — stats, alerts, watchlist, live ticker, recent activity |
+| 📡 Live Scores | Real-time scoreboards for NFL, NBA, MLB, NHL, EPL with auto-refresh |
+| ⚡ Analyze | AI analysis engine — 4 modes (Pre-Game, Live, Post-Game, Predictions) × 7 sports |
+| 🏟️ Team Hub | Dedicated team dashboards with analysis history, predictions, and watchlist |
+| 🔮 Predictions | Log picks, mark W/L, track accuracy %, broken down by sport |
+| 🏆 Leaderboard | Prediction accuracy rankings — compete with other analysts |
+| 👁️ Watchlist | Track teams, get alerts, generate morning briefings |
+| ⚔️ Head-to-Head | Compare any two teams — full breakdown, stats, history, or predict winner |
+| 🎯 Player Spotlight | Deep-dive on any athlete — scouting, stats, story arc, comp search, MVP case |
+| 🎰 Parlay Builder | Build multi-sport parlays with AI risk analysis and alternative suggestions |
+| 🔥 Trending | Today's top 10 storylines + hot take generator with commentator angles |
+| 📋 Prep Sheet | Print-ready broadcast prep — stats, storylines, talking points, predictions |
+| 📝 Content Creator | Turn any analysis into fan-facing FMFO posts with branding |
+| 📚 Library | All saved analyses and session history |
+
+### Sports Covered
+
+🏈 NFL · 🏀 NBA · ⚾ MLB · 🏒 NHL · ⚽ Soccer · 🥊 MMA · 🥋 Boxing
+
+---
+
+## Project Structure
+
+```
+fmfo-sports/
+├── public/
+│   ├── index.html           # Complete frontend app (all 14 features)
+│   └── app.js               # API client — connects frontend to backend
+├── server/
+│   ├── index.js             # Express server — all API routes
+│   ├── ai.js                # Anthropic Claude API — streaming analysis
+│   ├── db.js                # SQLite database
+│   └── sports.js            # ESPN API — live scores
+├── scripts/
+│   └── refresh-scores.js    # Auto-refresh scores (cron-ready)
+├── .env.example             # Config template — copy to .env
+├── .gitignore
+├── Dockerfile               # One-command containerization
+├── package.json
+└── README.md
+```
+
+---
+
+## How It Works
+
+```
+Browser (public/index.html)
+    ↓ HTTP requests
+Express Server (server/index.js)
+    ├── POST /api/analyze     → Anthropic Claude API (streaming)
+    ├── POST /api/content     → Anthropic Claude API (content gen)
+    ├── GET  /api/scores/:lg  → ESPN free API → SQLite cache
+    ├── CRUD /api/predictions → SQLite
+    ├── CRUD /api/analyses    → SQLite
+    └── GET  /api/leaderboard → SQLite aggregation
+```
+
+---
+
+## API Reference
+
+### AI Analysis
+| Endpoint | Method | Body | Returns |
+|----------|--------|------|---------|
+| `/api/analyze` | POST | `{query, sport, mode, team?}` | SSE stream |
+| `/api/content` | POST | `{analysis}` | `{content}` |
+
+### Live Data
+| Endpoint | Method | Returns |
+|----------|--------|---------|
+| `/api/scores/:league` | GET | Scores (nfl/nba/mlb/nhl/epl) |
+| `/api/standings/:league` | GET | Standings |
+
+### User Data
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/predictions` | GET/POST | List / save predictions |
+| `/api/predictions/:id` | PATCH/DELETE | Mark result / delete |
+| `/api/analyses` | GET/POST | List / save analyses |
+| `/api/analyses/:id` | DELETE | Delete |
+| `/api/leaderboard` | GET | Rankings by accuracy |
+| `/api/health` | GET | Server status |
+
+---
+
+## Auto-Refresh Scores
+
+Scores cache for 5 minutes automatically. For background refresh:
 
 ```bash
-# Run backend unit tests
-cd server
-npm test
+# Manual
+npm run scores:refresh
+
+# Cron (every 5 min)
+crontab -e
+*/5 * * * * cd /path/to/fmfo-sports && node scripts/refresh-scores.js
 ```
 
 ---
 
-## ⚙️ Environment Variables Reference
+## Custom Domain
 
-### Backend (`server/.env`)
-```env
-PORT=4000
-DATABASE_URL="postgresql://postgres:postgrespassword@localhost:5432/sports_analytics?schema=public"
-JWT_SECRET="sports_analytics_super_secret_jwt_key_2026"
-JWT_EXPIRES_IN="7d"
-REDIS_URL="redis://localhost:6379"
-NODE_ENV="development"
+Point `sports.formyfansonly.com` to your server:
+
+**Caddy (easiest):**
+```
+sports.formyfansonly.com {
+    reverse_proxy localhost:3000
+}
 ```
 
-### Frontend (`.env.local`)
-```env
-NEXT_PUBLIC_API_URL="http://localhost:4000/api"
+**Nginx:**
+```nginx
+server {
+    server_name sports.formyfansonly.com;
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+    }
+}
 ```
 
 ---
 
-## 📄 License
-Released under the MIT License.
+## FMFO Platform Integration
+
+When formyfansonly.com has user accounts:
+
+1. **Auth** — Add JWT middleware, replace `userId` with real tokens
+2. **Tiers** — Rate-limit by subscription level:
+   - Free: 5 analyses/month, pre-game only
+   - Creator ($9.99): 50/month, all modes
+   - Pro ($24.99): Unlimited + predictions + parlay + prep sheets
+   - Enterprise: API access, white-label
+3. **Content Pipeline** — Wire `/api/content` to FMFO Creator Hub
+4. **Embed** — `<iframe src="https://sports.formyfansonly.com" style="width:100%;height:100vh;border:none"></iframe>`
+
+---
+
+## Cost at Scale
+
+| Component | Cost |
+|-----------|------|
+| Anthropic API (10K analyses/month) | ~$300/month |
+| ESPN scores | Free |
+| Hosting (Railway/Render) | $5–20/month |
+| Domain | $12/year |
+| **Total** | **~$325/month** |
+
+---
+
+## Tech Stack
+
+- **Frontend:** Vanilla HTML/CSS/JS (zero dependencies, instant load)
+- **Backend:** Node.js + Express
+- **AI:** Anthropic Claude API (claude-sonnet-4-6)
+- **Database:** SQLite (swap for PostgreSQL at scale)
+- **Scores:** ESPN public API
+- **Deployment:** Railway, Render, Docker, or any Node.js host
+
+---
+
+**FMFO Technologies Inc.**
+*"What Are You A Fan Of?"*
+[formyfansonly.com](https://www.formyfansonly.com)
