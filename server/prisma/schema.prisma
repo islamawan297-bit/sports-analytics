@@ -8,12 +8,40 @@ datasource db {
 }
 
 model User {
+  id            String          @id @default(uuid())
+  email         String          @unique
+  password      String
+  name          String
+  role          String          @default("USER")
+  tier          String          @default("FREE")
+  favorites     String?         // JSON array of favorite team/player IDs
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  predictions   Prediction[]
+  savedAnalyses SavedAnalysis[]
+}
+
+model Prediction {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sport      String
+  pick       String
+  confidence Int
+  reasoning  String
+  result     String?  // WIN | LOSS | PENDING | PUSH
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model SavedAnalysis {
   id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  name      String
-  role      String   @default("USER")
-  favorites String?  // JSON array of favorite team/player IDs
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  sport     String
+  mode      String
+  content   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

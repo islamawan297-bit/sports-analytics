@@ -500,8 +500,8 @@ export async function getPlayersFromProvider(sport?: string, teamId?: string): P
         { game: 'G4', metric1: 31, metric2: 8 },
       ],
       recentGames: [
-        { date: '2025-03-20', opponent: 'vs BOS', result: 'W 112-108', statsText: '28 PTS, 7 REB, 6 AST' },
-        { date: '2025-03-18', opponent: '@ NYK', result: 'L 101-105', statsText: '22 PTS, 5 REB, 4 AST' },
+        { date: '2026-03-20', opponent: 'vs BOS', result: 'W 112-108', statsText: '28 PTS, 7 REB, 6 AST' },
+        { date: '2026-03-18', opponent: '@ NYK', result: 'L 101-105', statsText: '22 PTS, 5 REB, 4 AST' },
       ],
     }));
   }

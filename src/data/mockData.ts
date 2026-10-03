@@ -15,7 +15,7 @@ export const SPORTS_LIST: SportInfo[] = [
     category: 'ball',
     iconName: 'Dribble',
     description: 'National Basketball Association',
-    seasonPeriod: '2025-2026 Regular Season',
+    seasonPeriod: '2026-2027 Regular Season',
     activeTeamsCount: 30,
   },
   {
@@ -24,7 +24,7 @@ export const SPORTS_LIST: SportInfo[] = [
     category: 'ball',
     iconName: 'Trophy',
     description: 'National Football League',
-    seasonPeriod: '2025 Regular Season',
+    seasonPeriod: '2026 Regular Season',
     activeTeamsCount: 32,
   },
   {
@@ -33,7 +33,7 @@ export const SPORTS_LIST: SportInfo[] = [
     category: 'ball',
     iconName: 'Activity',
     description: 'Major League Baseball',
-    seasonPeriod: '2025 Pennant Race',
+    seasonPeriod: '2026 Pennant Race',
     activeTeamsCount: 30,
   },
   {
@@ -42,7 +42,7 @@ export const SPORTS_LIST: SportInfo[] = [
     category: 'ball',
     iconName: 'Globe',
     description: 'Major League Soccer',
-    seasonPeriod: '2025 MLS Cup Campaign',
+    seasonPeriod: '2026 MLS Cup Campaign',
     activeTeamsCount: 29,
   },
   {
@@ -51,7 +51,7 @@ export const SPORTS_LIST: SportInfo[] = [
     category: 'ball',
     iconName: 'Zap',
     description: 'National Hockey League',
-    seasonPeriod: '2025 Stanley Cup Quest',
+    seasonPeriod: '2026 Stanley Cup Quest',
     activeTeamsCount: 32,
   },
   {
@@ -60,7 +60,7 @@ export const SPORTS_LIST: SportInfo[] = [
     category: 'combat',
     iconName: 'Shield',
     description: 'World Championship Boxing',
-    seasonPeriod: '2025 World Title Fights',
+    seasonPeriod: '2026 World Title Fights',
     activeTeamsCount: 12,
   },
   {
@@ -69,7 +69,7 @@ export const SPORTS_LIST: SportInfo[] = [
     category: 'combat',
     iconName: 'Flame',
     description: 'UFC & Mixed Martial Arts',
-    seasonPeriod: '2025 Octagon Series',
+    seasonPeriod: '2026 Octagon Series',
     activeTeamsCount: 14,
   },
 ];
